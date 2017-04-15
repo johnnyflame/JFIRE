@@ -1,4 +1,4 @@
-package parser;
+package searchEngine;
 
 /*
 * To change this license header, choose License Headers in Project Properties.
@@ -12,18 +12,17 @@ import java.util.Scanner;
 
 /**
  * Parser.java
- * A simple XML parser, removes tags and convert everything to lower case
+ * A simple XML parser, removes tags and convert everything to upper case.
+ * This parser is only designed for usage with wsj.xml as the dataset, as it 
+ * does not protect against illegal XML.
  * @author Johnny Flame Lee 2017
  */
 public class Parser{
     public static void main(String [] args){
-      //  parseTokens();
-       dataTester();
+        parseTokens();
+      // dataTester();
     }
     
-    public static void findPrimaryKey(){
-        
-    }
     
     /**
      * This is a testing method checks assumptions about the dataset
@@ -69,7 +68,7 @@ public class Parser{
      */
     public static void parseTokens(){
         Scanner sc = new Scanner(System.in);
-        int count = 0;
+      //  int count = 0;
         //boolean firstDoc = true;
         while (sc.hasNext()){
             
@@ -77,7 +76,7 @@ public class Parser{
             String token = sc.next();
             
             if (token.equals("</DOC>")){
-                System.out.println("------------------------------------------------------------------------------------");
+                System.out.println();
             }
             //if the token starts with '<' we want to ignore it.
             //if it does not start with "<", it may still contain tag elsewhere,so we have another check.
@@ -89,7 +88,7 @@ public class Parser{
                     token = token.substring(0,token.indexOf('<'));
                 }
                 
-                //First remove $amp; markup, replace with space.
+                //First remove &amp; markup, replace with space.
                 String strippedToken = token.replaceAll("&amp;", " ");
                 /*Then remove all punctuation, replace with space.
                 This is a difficult design decision to make. May lead to false positives.*/
@@ -97,9 +96,8 @@ public class Parser{
                 
                 Scanner cleanToken = new Scanner(strippedToken);
                 while (cleanToken.hasNext()){
-                    System.out.println(count + " " +
-                            cleanToken.next().toUpperCase());
-                    count++;
+                    System.out.println(cleanToken.next().toUpperCase());
+                   // count++;
                 }
             }
             //  firstDoc = false;
