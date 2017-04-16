@@ -21,16 +21,34 @@ public class Indexer {
     public static HashMap<String,ArrayList<Posting>> invertedIndex;
     
     public static void main (String args[]){
-       dictionary = makeDictionary();
-       
-       
+       // dictionary = makeDictionary();
+        invertedIndex = createIndex();
+        printIndex(invertedIndex);
+  
     }
     
     
-    /**
-     * Creates an inverted index of the document collection.
-     * 
-     * @return the index 
+    public static void printIndex(HashMap<String,
+            ArrayList<Posting>> index){
+        
+       TreeMap<String,ArrayList<Posting>> tm = new TreeMap(index);
+        
+        
+        for (String term:tm.keySet()){
+            System.out.println(term + "\t");
+            System.out.println();
+            for(Posting p : tm.get(term)){
+                System.out.println(p.getDocID() + "\t: " +
+                        p.getFrequency());
+            }
+            
+        }
+    }
+        
+        /**
+         * Creates an inverted index of the document collection.
+     *
+     * @return the index
      */
     public static HashMap<String,ArrayList<Posting>> createIndex(){
         
@@ -62,16 +80,18 @@ public class Indexer {
                 }
                 else{
                     /*Case 2: We know the entry exists, check if the last item is this docID*/
+                    ArrayList<Posting>currentPostingList = index.get(word);
+                    int lastIndex = currentPostingList.size()-1;
                     
-                    /* TODO: implement case 2. Think it through properly.*/
-               
-                    
-                    
-                    
-                }
-                
-            }
-            
+                    if ((currentPostingList.get(lastIndex).getDocID()) != docID){
+                        currentPostingList.add(new Posting(docID, 1));
+                    }
+                    /* Case 3: Entry has been seen in current Doc, increment frequency.*/
+                    else{
+                        currentPostingList.get(lastIndex).incrementFrequency();
+                    }
+                }   
+            }   
         }
         return index;
     }
