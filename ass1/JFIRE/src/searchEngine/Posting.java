@@ -5,11 +5,13 @@
  */
 package searchEngine;
 
+import java.io.Serializable;
+
 /**
  *
  * @author johnny
  */
-public class Posting {
+public class Posting implements Serializable{
     private Integer docID;
     private Integer termFrequency;
     
