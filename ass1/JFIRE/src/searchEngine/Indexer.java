@@ -5,10 +5,12 @@
 */
 package searchEngine;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 import java.util.TreeMap;
+import java.util.zip.*;
 
 /**
  *
@@ -23,8 +25,50 @@ public class Indexer {
     public static void main (String args[]){
      //   dictionary = makeDictionary();
         invertedIndex = createIndex();
-        printIndex(dictionary,invertedIndex);
+        //printIndex(dictionary,invertedIndex);
+        serialize(dictionary, invertedIndex);
   
+    }
+    
+    /**
+     * Serialize data and write to disk.
+     * @param dict the dictionary mapping between docNo and docID
+     * @param index the inverted file index.
+     */
+    public static void serialize(HashMap<Integer,String> dict,
+            HashMap<String,ArrayList<Posting>> index){
+        
+        try{
+            String filename = "dictionary.ser";
+            FileOutputStream fos = new FileOutputStream(filename);
+            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            ObjectOutputStream oos = new ObjectOutputStream(gz);
+            
+            oos.writeObject(dict);
+            oos.flush();
+            oos.close();
+            fos.close();
+            System.out.println("Serialized dictionary data has been saved in: " + filename);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        
+        try{
+            String filename = "index.ser";
+            FileOutputStream fos = new FileOutputStream(filename);
+            
+            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            ObjectOutputStream oos = new ObjectOutputStream(gz);
+            
+            oos.writeObject(index);
+            oos.flush();
+            oos.close();
+            fos.close();
+            System.out.println("Serialized index data has been saved in: " + filename);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        
     }
     
     
