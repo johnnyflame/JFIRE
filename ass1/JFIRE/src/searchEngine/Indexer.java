@@ -16,31 +16,32 @@ import java.util.TreeMap;
  */
 public class Indexer {
     
-    public static HashMap<Integer,String> dictionary;
+    public static HashMap<Integer,String> dictionary = new HashMap<>();
     
     public static HashMap<String,ArrayList<Posting>> invertedIndex;
     
     public static void main (String args[]){
-       // dictionary = makeDictionary();
+     //   dictionary = makeDictionary();
         invertedIndex = createIndex();
-        printIndex(invertedIndex);
+        printIndex(dictionary,invertedIndex);
   
     }
     
     
-    public static void printIndex(HashMap<String,
+    public static void printIndex(HashMap<Integer,String> dict, HashMap<String,
             ArrayList<Posting>> index){
         
-       TreeMap<String,ArrayList<Posting>> tm = new TreeMap(index);
+        TreeMap<String,ArrayList<Posting>> tm = new TreeMap(index);
         
         
         for (String term:tm.keySet()){
             System.out.println(term + "\t");
-            System.out.println();
+            
             for(Posting p : tm.get(term)){
-                System.out.println(p.getDocID() + "\t: " +
+                System.out.println(dict.get(p.getDocID()) + "\t: " +
                         p.getFrequency());
             }
+            System.out.println();
             
         }
     }
@@ -56,17 +57,34 @@ public class Indexer {
         Scanner sc = new Scanner(System.in);
         int docID = 0; //docID is zero-indexed
         
+        int termCounter = 0;
+        String DocNo = "";
+        
         while(sc.hasNext()){
+            termCounter++;
             String word = sc.nextLine();
             
             
             /* "case 0": If empty line is encountered,increment docID and do nothing. */
             if (word.isEmpty()){
                 docID++;
+                termCounter = 0;
             }
             
             /* Case 1: word not found in the collection. Do: Create an entry in the index for it */
             else{
+                
+                if(termCounter == 1){
+                    DocNo += word;
+                }
+                
+                if (termCounter == 2){
+                    DocNo += "-" + word;                 
+                    dictionary.put(docID, DocNo);
+                    DocNo = "";
+                }
+                
+                
                 if(!index.containsKey(word)){
                     
                     /* Create postinng, tf set to 1 since we've now seen it once. */                    
@@ -103,16 +121,20 @@ public class Indexer {
      * @return a dictionary for lookup between docID and DocNo
      */
     public static HashMap<Integer,String> makeDictionary(){
-        Scanner sc = new Scanner(System.in);
-        HashMap<Integer,String> dictonary = new HashMap<>();
+        
+        HashMap<Integer,String> dict = new HashMap<>();
+       
+     
         
         int termCounter = 0, docID = 0;
         String DocNo = "";
         
+       
+        Scanner sc = new Scanner(System.in);
         
         while (sc.hasNext()){
             termCounter++;
-            String token = sc.nextLine();           
+            String token = sc.nextLine();
             // System.out.println(termCounter);
             
             // Reset the counter if an empty line is reached.
@@ -126,13 +148,20 @@ public class Indexer {
             if (termCounter == 2){
                 DocNo += "-" + token;
                 
-                dictonary.put(docID, DocNo);                
+                dict.put(docID, DocNo);
                 docID++;
                 DocNo = "";
             }
         }
         
-        return dictonary;
+        
+        TreeMap <Integer,String> tm = new TreeMap<>(dict);
+        
+        for (Integer i : tm.keySet()){
+            System.out.println(i + "\t" + tm.get(i));
+        }
+        
+        return dict;
     }
     
     /**
