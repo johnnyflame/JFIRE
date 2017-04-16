@@ -1,20 +1,18 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+* To change this license header, choose License Headers in Project Properties.
+* To change this template file, choose Tools | Templates
+* and open the template in the editor.
+*/
 package searchEngine;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Scanner;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.zip.*;
 
 /**
  * This class loads the index to memory, then handles queries and returns search results.
  * The results and then ranked and outputted to stdout.
- * 
+ *
  * @author johnny
  */
 public class Searcher {
@@ -26,8 +24,8 @@ public class Searcher {
     public static void main(String [] args){
         
         deserializeData();
-      //  printIndex(dictionary, invertedIndex);
-       
+        //  printIndex(dictionary, invertedIndex);
+        
     }
     
     public static void deserializeData(){
@@ -35,7 +33,8 @@ public class Searcher {
         try{
             
             FileInputStream fis = new FileInputStream(filename);
-            ObjectInputStream ois = new ObjectInputStream(fis);
+            GZIPInputStream gs = new GZIPInputStream(fis);
+            ObjectInputStream ois = new ObjectInputStream(gs);
             
             dictionary = (HashMap)ois.readObject();
             
@@ -48,34 +47,35 @@ public class Searcher {
             c.printStackTrace();
         }
         
-//        System.out.println("Deserialized " + filename);
-//        
+        System.out.println("Deserialized " + filename);
+//
 //        TreeMap <Integer,String> tm = new TreeMap<>(dictionary);
-//        
+//
 //        for (Integer i : tm.keySet()){
 //            System.out.println(i + "\t" + tm.get(i));
 //        }
-        
-        System.out.println();
-        filename = "index.ser";
-        try{ 
-            FileInputStream fis = new FileInputStream(filename);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            
-            invertedIndex = (HashMap)ois.readObject();
-            
-            ois.close();
-            fis.close();
-        }catch(IOException e){
-            e.printStackTrace();
-        }catch(ClassNotFoundException c){
-            System.out.println("Class not found.");
-            c.printStackTrace();
-        }
-        System.out.println("Deserialized " + filename);
+
+
+filename = "index.ser";
+try{
+    FileInputStream fis = new FileInputStream(filename);
+    GZIPInputStream gs = new GZIPInputStream(fis);  
+    ObjectInputStream ois = new ObjectInputStream(gs);
+    
+    invertedIndex = (HashMap)ois.readObject();
+    
+    ois.close();
+    fis.close();
+}catch(IOException e){
+    e.printStackTrace();
+}catch(ClassNotFoundException c){
+    System.out.println("Class not found.");
+    c.printStackTrace();
+}
+System.out.println("Deserialized " + filename);
     }
     
-     public static void printIndex(HashMap<Integer,String> dict, HashMap<String,
+    public static void printIndex(HashMap<Integer,String> dict, HashMap<String,
             ArrayList<Posting>> index){
         
         TreeMap<String,ArrayList<Posting>> tm = new TreeMap(index);
@@ -94,7 +94,7 @@ public class Searcher {
     }
     public static void parseQuery(){
         Scanner sc = new Scanner(System.in);
- 
+        
     }
     
 }

@@ -12,8 +12,8 @@ import java.io.Serializable;
  * @author johnny
  */
 public class Posting implements Serializable{
-    private Integer docID;
-    private Integer termFrequency;
+    private int docID;
+    private int termFrequency;
     
     
     public Posting(int docID, int termFrequency){
@@ -34,8 +34,8 @@ public class Posting implements Serializable{
         this.termFrequency++;
     }
     
-    @Override
-    public String toString(){
-        return docID.toString() + " " + termFrequency.toString();
-    }
+//    @Override
+//    public String toString(){
+//        return docID.toString() + " " + termFrequency.toString();
+//    }
 }
