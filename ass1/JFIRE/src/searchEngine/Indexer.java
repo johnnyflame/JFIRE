@@ -18,15 +18,15 @@ import java.util.zip.*;
  */
 public class Indexer {
     
-    public static HashMap<Integer,String> dictionary = new HashMap<>();
-    
+    public static HashMap<Integer,String> dictionary = new HashMap<>(); 
     public static HashMap<String,ArrayList<Posting>> invertedIndex;
     
     public static void main (String args[]){
      //   dictionary = makeDictionary();
         invertedIndex = createIndex();
+        deltaCompression(invertedIndex);
         //printIndex(dictionary,invertedIndex);
-        serialize(dictionary, invertedIndex);
+        //serialize(dictionary, invertedIndex);
   
     }
     
@@ -58,6 +58,7 @@ public class Indexer {
             FileOutputStream fos = new FileOutputStream(filename);
             
             GZIPOutputStream gz = new GZIPOutputStream(fos);
+            
             ObjectOutputStream oos = new ObjectOutputStream(gz);
             
             oos.writeObject(index);
@@ -237,4 +238,40 @@ public class Indexer {
         
         
     }
+    
+    
+    public static void deltaCompression(HashMap<String,ArrayList<Posting>> index1 ){
+        
+        TreeMap<String,ArrayList<Posting>> index = new TreeMap<>(index1);
+        
+        for (String key : index.keySet()){
+            ArrayList<Posting> currentPostingList = index.get(key);
+            System.out.println(key);
+            
+            int [] diffArray = new int[currentPostingList.size()];
+            diffArray[0] = currentPostingList.get(0).getDocID();
+            
+            for (int i = 1; i < currentPostingList.size();i++){
+                int diff = currentPostingList.get(i).getDocID() - currentPostingList.get(i-1).getDocID();
+                diffArray[i] = diff;
+            }
+            
+            for (int i = 0; i < currentPostingList.size();i++){
+                
+                currentPostingList.get(i).setDocID(diffArray[i]);
+            }
+            
+            // System.out.println("docID: " + current.get(i).getDocID() + "\t"+"diff: " + diff);
+            //  current.get(i).setDocID(diff); //docID field now holds the diff value.
+              for (int i = 0; i < currentPostingList.size();i++){
+              System.out.println("diffs: " + currentPostingList.get(i).getDocID());
+            }
+           
+        }
+
+    System.out.println();
+    System.out.println("Number of unique entries: " + index.size());
+}
+//    
+//    public static void 
 }
