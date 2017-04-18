@@ -27,11 +27,12 @@ public class Indexer {
         //   dictionary = makeDictionary();
         invertedIndex = createIndex();
         deltaCompression(invertedIndex);
-        divideBlocks(invertedIndex);
+      //  divideBlocks(invertedIndex);
+        writeSingleEntry(invertedIndex);
         
         
         //printIndex(dictionary,invertedIndex);
-        // serialize(dictionary, invertedIndex);
+         //serialize(dictionary, invertedIndex);
         
     }
     
@@ -44,7 +45,7 @@ public class Indexer {
             HashMap<String,ArrayList<Posting>> index){
         
         try{
-            String filename = "dictionary.ser";
+            String filename = "dict\\dictionary.ser";
             FileOutputStream fos = new FileOutputStream(filename);
             GZIPOutputStream gz = new GZIPOutputStream(fos);
             ObjectOutputStream oos = new ObjectOutputStream(gz);
@@ -53,14 +54,16 @@ public class Indexer {
             oos.flush();
             oos.close();
             fos.close();
-            System.out.println("Serialized dictionary data has been saved in: " + filename);
+      //      System.out.println("Serialized dictionary data has been saved in: " + filename);
         }catch(IOException e){
             e.printStackTrace();
         }
         
         try{
             String filename = "index.ser";
-            FileOutputStream fos = new FileOutputStream(filename);
+ 
+            File output =  new File("./data/" + filename);
+            FileOutputStream fos = new FileOutputStream(output);
             
             GZIPOutputStream gz = new GZIPOutputStream(fos);
             
@@ -76,7 +79,38 @@ public class Indexer {
         }
         
     }
-    
+    public static void writeSingleEntry(HashMap<String,ArrayList<Posting>> index1){
+        
+        TreeMap<String,ArrayList<Posting>> index = new TreeMap<>(index1);
+        
+        HashMap <String,ArrayList<Posting>> singleEntry = new HashMap<>();
+        
+        for (String key:index.keySet()){
+            singleEntry.put(key, index.get(key));
+          
+        
+        
+        
+        try{
+            String filename = key + ".ser";
+            File output =  new File("./data/" + filename);
+            FileOutputStream fos = new FileOutputStream(output);
+            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            ObjectOutputStream oos = new ObjectOutputStream(gz);
+            
+            oos.writeObject(singleEntry);
+            oos.flush();
+            oos.close();
+            fos.close();
+          //  System.out.println("Serialized dictionary data has been saved in: " + filename);
+            singleEntry.clear();
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        
+        
+        }
+    }
     public static void writeBlockedIndex(HashMap<String,ArrayList<Posting>> index,char p){
         
         
