@@ -94,10 +94,14 @@ public class Parser{
                 This is a difficult design decision to make. May lead to false positives.*/
                 strippedToken = strippedToken.replaceAll("\\W", " ");
                 
+                /* Remove underscores*/
+                
+                strippedToken = strippedToken.replaceAll("_", " ");
+                
                 Scanner cleanToken = new Scanner(strippedToken);
                 while (cleanToken.hasNext()){
                     System.out.println(cleanToken.next().toUpperCase());
-                   // count++;
+                    // count++;
                 }
             }
             //  firstDoc = false;

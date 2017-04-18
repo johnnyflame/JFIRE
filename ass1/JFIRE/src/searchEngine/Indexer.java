@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.zip.*;
+//import gnu.trove.*;
+
 
 /**
  *
@@ -18,16 +20,19 @@ import java.util.zip.*;
  */
 public class Indexer {
     
-    public static HashMap<Integer,String> dictionary = new HashMap<>(); 
+    public static HashMap<Integer,String> dictionary = new HashMap<>();
     public static HashMap<String,ArrayList<Posting>> invertedIndex;
     
     public static void main (String args[]){
-     //   dictionary = makeDictionary();
+        //   dictionary = makeDictionary();
         invertedIndex = createIndex();
         deltaCompression(invertedIndex);
+        divideBlocks(invertedIndex);
+        
+        
         //printIndex(dictionary,invertedIndex);
-        //serialize(dictionary, invertedIndex);
-  
+        // serialize(dictionary, invertedIndex);
+        
     }
     
     /**
@@ -72,7 +77,28 @@ public class Indexer {
         
     }
     
-    
+    public static void writeBlockedIndex(HashMap<String,ArrayList<Posting>> index,char p){
+        
+        
+        try{
+            char prefix = p;
+            String filename = prefix + ".ser";
+            FileOutputStream fos = new FileOutputStream(filename);
+            
+            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            
+            ObjectOutputStream oos = new ObjectOutputStream(gz);
+            
+            oos.writeObject(index);
+            oos.flush();
+            oos.close();
+            fos.close();
+            System.out.println("Serialized index data has been saved in: " + filename);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        
+    }
     public static void printIndex(HashMap<Integer,String> dict, HashMap<String,
             ArrayList<Posting>> index){
         
@@ -90,9 +116,9 @@ public class Indexer {
             
         }
     }
-        
-        /**
-         * Creates an inverted index of the document collection.
+    
+    /**
+     * Creates an inverted index of the document collection.
      *
      * @return the index
      */
@@ -124,7 +150,7 @@ public class Indexer {
                 }
                 
                 if (termCounter == 2){
-                    DocNo += "-" + word;                 
+                    DocNo += "-" + word;
                     dictionary.put(docID, DocNo);
                     DocNo = "";
                 }
@@ -132,8 +158,8 @@ public class Indexer {
                 
                 if(!index.containsKey(word)){
                     
-                    /* Create postinng, tf set to 1 since we've now seen it once. */                    
-                    Posting posting = new Posting(docID, 1);                    
+                    /* Create postinng, tf set to 1 since we've now seen it once. */
+                    Posting posting = new Posting(docID, 1);
                     /* create a new Array List containg postings */
                     ArrayList<Posting> postingItem = new ArrayList<>();
                     postingItem.add(posting);
@@ -153,28 +179,28 @@ public class Indexer {
                     else{
                         currentPostingList.get(lastIndex).incrementFrequency();
                     }
-                }   
-            }   
+                }
+            }
         }
         return index;
     }
     /**
      * Extract the DocNo from the collection to use as primary key,put it in
      * a hashMap with the key-value pair as "docID(Integer): DocNo(String)"
-     * 
+     *
      * NOTE: dictionary is zero-indexed. ie the docID start at 0
      * @return a dictionary for lookup between docID and DocNo
      */
     public static HashMap<Integer,String> makeDictionary(){
         
         HashMap<Integer,String> dict = new HashMap<>();
-       
-     
+        
+        
         
         int termCounter = 0, docID = 0;
         String DocNo = "";
         
-       
+        
         Scanner sc = new Scanner(System.in);
         
         while (sc.hasNext()){
@@ -240,38 +266,96 @@ public class Indexer {
     }
     
     
-    public static void deltaCompression(HashMap<String,ArrayList<Posting>> index1 ){
+    public static void deltaCompression(HashMap<String,ArrayList<Posting>> index ){
         
-        TreeMap<String,ArrayList<Posting>> index = new TreeMap<>(index1);
-        
-        for (String key : index.keySet()){
-            ArrayList<Posting> currentPostingList = index.get(key);
-            System.out.println(key);
-            
-            int [] diffArray = new int[currentPostingList.size()];
-            diffArray[0] = currentPostingList.get(0).getDocID();
-            
-            for (int i = 1; i < currentPostingList.size();i++){
-                int diff = currentPostingList.get(i).getDocID() - currentPostingList.get(i-1).getDocID();
-                diffArray[i] = diff;
-            }
-            
-            for (int i = 0; i < currentPostingList.size();i++){
-                
-                currentPostingList.get(i).setDocID(diffArray[i]);
-            }
-            
-            // System.out.println("docID: " + current.get(i).getDocID() + "\t"+"diff: " + diff);
-            //  current.get(i).setDocID(diff); //docID field now holds the diff value.
-              for (int i = 0; i < currentPostingList.size();i++){
-              System.out.println("diffs: " + currentPostingList.get(i).getDocID());
-            }
-           
-        }
+//        TreeMap<String,ArrayList<Posting>> index = new TreeMap<>(index1);
 
-    System.out.println();
-    System.out.println("Number of unique entries: " + index.size());
+for (String key : index.keySet()){
+    ArrayList<Posting> currentPostingList = index.get(key);
+    //System.out.println(key);
+    
+    int[] actualDocID = new int [currentPostingList.size()];
+    int [] diffArray = new int[currentPostingList.size()];
+    diffArray[0] = currentPostingList.get(0).getDocID();
+    actualDocID[0] = diffArray[0];
+    
+    
+    for (int i = 1; i < currentPostingList.size();i++){
+        int diff = currentPostingList.get(i).getDocID() - currentPostingList.get(i-1).getDocID();
+        diffArray[i] = diff;
+        actualDocID[i] = currentPostingList.get(i).getDocID();
+    }
+    
+    for (int i = 0; i < currentPostingList.size();i++){
+        currentPostingList.get(i).setDocID(diffArray[i]);
+    }
+    
+    
+//              for (int i = 0; i < currentPostingList.size();i++){
+//              System.out.println("docID: " + actualDocID[i] + "\tdiffs: " + currentPostingList.get(i).getDocID());
+//            }
 }
-//    
+
+System.out.println();
+System.out.println("Number of unique entries: " + index.size());
+    }
+//
+    public static void divideBlocks(HashMap<String,ArrayList<Posting>> index1){
+        TreeMap<String,ArrayList<Posting>> index = new TreeMap<>(index1);
+        TreeMap<String,ArrayList<Posting>> indexBuffer = new TreeMap<>();
+        
+        char filename = '0';
+        
+        int totalCount = 0;
+        int currentCount = 0;
+        for(int i = 0;i < index.size();i++){
+            String key = (String) index.keySet().toArray()[i];
+            indexBuffer.put(key, index.get(key));
+            currentCount++;
+            
+
+            if (i < index.size()-1){
+                String nextKey = (String) index.keySet().toArray()[i+1];
+                if (key.charAt(0) != nextKey.charAt(0) && (!Character.isDigit(nextKey.charAt(0)))){
+                    
+                    
+                    if((!Character.isDigit(key.charAt(0)))){
+                        filename = key.charAt(0);
+                    }
+                    
+                    writeBlockedIndex(new HashMap(indexBuffer), filename);
+                    totalCount += currentCount;
+                    System.out.println("Tokens starting with " + filename+ ": " + currentCount);
+                    System.out.println("----------------------------------------------");
+                    
+                    currentCount=0;
+                    indexBuffer.clear();
+                }
+            }
+        }
+        
+        filename = 'Z';
+        
+        writeBlockedIndex(new HashMap(indexBuffer), filename);
+        
+        
+        totalCount += currentCount;
+        System.out.println("Tokens starting with z : " + currentCount);
+        System.out.println("----------------------------------------------");
+        
+        currentCount=0;
+        indexBuffer.clear();
+        
+        System.out.println("total count of new keys: " + totalCount);
+        
+        
+    }
+    
+    
+//         for (String key : index.keySet()){
+//             indexBuffer.put(key, index.get(key));
+//             if()
+    
+}
+
 //    public static void 
-}

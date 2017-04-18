@@ -22,21 +22,27 @@ public class Searcher {
     public static ArrayList<String> queryList;
     
     public static void main(String [] args){
-        
-        deserializeData();
-        //  printIndex(dictionary, invertedIndex);
-        
+     //   queryList = parseQuery();
+ 
+
     }
     
-    public static void deserializeData(){
-        String filename = "dictionary.ser";
+    public static void lookUp(ArrayList<String> queries){
+        for (String s:queryList){
+            //retrieve results here
+        }
+    }
+    
+    public static HashMap<String,ArrayList<Posting>> deserializeData(String name){
+        String filename = name + ".ser";
+        HashMap<String,ArrayList<Posting>> dict = new HashMap<>();
         try{
             
             FileInputStream fis = new FileInputStream(filename);
             GZIPInputStream gs = new GZIPInputStream(fis);
             ObjectInputStream ois = new ObjectInputStream(gs);
             
-            dictionary = (HashMap)ois.readObject();
+             dict = (HashMap)ois.readObject();
             
             ois.close();
             fis.close();
@@ -48,31 +54,7 @@ public class Searcher {
         }
         
         System.out.println("Deserialized " + filename);
-//
-//        TreeMap <Integer,String> tm = new TreeMap<>(dictionary);
-//
-//        for (Integer i : tm.keySet()){
-//            System.out.println(i + "\t" + tm.get(i));
-//        }
-
-
-filename = "index.ser";
-try{
-    FileInputStream fis = new FileInputStream(filename);
-    GZIPInputStream gs = new GZIPInputStream(fis);  
-    ObjectInputStream ois = new ObjectInputStream(gs);
-    
-    invertedIndex = (HashMap)ois.readObject();
-    
-    ois.close();
-    fis.close();
-}catch(IOException e){
-    e.printStackTrace();
-}catch(ClassNotFoundException c){
-    System.out.println("Class not found.");
-    c.printStackTrace();
-}
-System.out.println("Deserialized " + filename);
+        return dict;
     }
     
     public static void printIndex(HashMap<Integer,String> dict, HashMap<String,
@@ -92,9 +74,24 @@ System.out.println("Deserialized " + filename);
             
         }
     }
-    public static void parseQuery(){
+    
+    
+    public static ArrayList<String> parseQuery(){
         Scanner sc = new Scanner(System.in);
+        ArrayList<String> queries = new ArrayList<>();
         
+        while (sc.hasNext()){
+            String term = sc.next();
+            term = term.replaceAll("\\W", " ");
+            
+            Scanner cleanser = new Scanner(term);
+            while (cleanser.hasNext()){
+                queries.add(cleanser.next().toUpperCase());
+            }
+        }
+        
+        
+        return queries;
     }
     
 }

@@ -25,6 +25,10 @@ public class Posting implements Serializable{
         return docID;
     }
     
+    public void setDocID(int i){
+        this.docID = i;
+    }
+    
     public int getFrequency(){
         return termFrequency;
     }
