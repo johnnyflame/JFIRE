@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.zip.*;
+
 //import gnu.trove.*;
 
 
@@ -22,13 +23,27 @@ public class Indexer {
     
     public static HashMap<Integer,String> dictionary = new HashMap<>();
     public static HashMap<String,ArrayList<Posting>> invertedIndex;
+    public static HashMap<String,PostingInfo> metaData;
     
     public static void main (String args[]){
-        //   dictionary = makeDictionary();
+           dictionary = makeDictionary();
+        
+      
         invertedIndex = createIndex();
         deltaCompression(invertedIndex);
+        
+        try{
+        metaData = writeRandomAccessFile(invertedIndex);
+        }catch(IOException e){
+            System.err.println("IO error!");
+            e.printStackTrace();
+        }
+        
+        serialize(metaData, "metaData");
+        serlalize(dictionary,"diconary");
+        
       //  divideBlocks(invertedIndex);
-        writeSingleEntry(invertedIndex);
+      //  writeSingleEntry(invertedIndex);
         
         
         //printIndex(dictionary,invertedIndex);
@@ -41,56 +56,37 @@ public class Indexer {
      * @param dict the dictionary mapping between docNo and docID
      * @param index the inverted file index.
      */
-    public static void serialize(HashMap<Integer,String> dict,
-            HashMap<String,ArrayList<Posting>> index){
+    public static void serialize(Object o,String name){
         
         try{
-            String filename = "dict\\dictionary.ser";
-            FileOutputStream fos = new FileOutputStream(filename);
+            String filename = name + ".dat";
+            File output =  new File("./data/" + filename);
+   
+            FileOutputStream fos = new FileOutputStream(output);
             GZIPOutputStream gz = new GZIPOutputStream(fos);
             ObjectOutputStream oos = new ObjectOutputStream(gz);
             
-            oos.writeObject(dict);
+            oos.writeObject(o);
             oos.flush();
             oos.close();
             fos.close();
       //      System.out.println("Serialized dictionary data has been saved in: " + filename);
         }catch(IOException e){
             e.printStackTrace();
-        }
-        
-        try{
-            String filename = "index.ser";
- 
-            File output =  new File("./data/" + filename);
-            FileOutputStream fos = new FileOutputStream(output);
-            
-            GZIPOutputStream gz = new GZIPOutputStream(fos);
-            
-            ObjectOutputStream oos = new ObjectOutputStream(gz);
-            
-            oos.writeObject(index);
-            oos.flush();
-            oos.close();
-            fos.close();
-            System.out.println("Serialized index data has been saved in: " + filename);
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-        
+        }  
     }
+    
     public static void writeSingleEntry(HashMap<String,ArrayList<Posting>> index1){
         
-        TreeMap<String,ArrayList<Posting>> index = new TreeMap<>(index1);
-        
+        TreeMap<String,ArrayList<Posting>> index = new TreeMap<>(index1);  
         HashMap <String,ArrayList<Posting>> singleEntry = new HashMap<>();
         
         for (String key:index.keySet()){
             singleEntry.put(key, index.get(key));
+          for (Posting p:index.get(key)){
+              
+          }  
           
-        
-        
-        
         try{
             String filename = key + ".ser";
             File output =  new File("./data/" + filename);
@@ -385,11 +381,47 @@ System.out.println("Number of unique entries: " + index.size());
         
     }
     
-    
-//         for (String key : index.keySet()){
-//             indexBuffer.put(key, index.get(key));
-//             if()
-    
-}
+    public static HashMap<String,PostingInfo> writeRandomAccessFile(HashMap<String,ArrayList<Posting>> index) 
+    throws IOException{
+        RandomAccessFile file = new RandomAccessFile("./data/index.dat", "rw");
 
-//    public static void 
+        HashMap<String,PostingInfo> metaData = new HashMap();
+         // Storing the start and end file pointer of docID and frequency
+        
+        for (String s: index.keySet()){
+            
+            
+            ArrayList<Posting> currentPosting = index.get(s);
+        
+            long startingPos = file.getFilePointer();
+            int size = currentPosting.size();
+            
+            PostingInfo p = new PostingInfo(startingPos, size);
+          
+            for(int i = 0;i < currentPosting.size();i++){
+                file.writeInt(currentPosting.get(i).getDocID());
+                file.writeInt(currentPosting.get(i).getFrequency());
+            }
+            
+          
+            
+         //   System.out.println("Term: " + s + " hits: " + pos[1]);
+         
+            metaData.put(s, p);
+           
+        }
+        file.close();
+        return metaData;
+    }
+    
+        
+            
+            
+            
+            
+            
+        }
+    
+
+
+
