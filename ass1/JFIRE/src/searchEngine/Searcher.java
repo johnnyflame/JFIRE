@@ -7,9 +7,8 @@ package searchEngine;
 
 import java.io.*;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.zip.*;
+import java.text.*;
 
 /**
  * This class loads the index to memory, then handles queries and returns search results.
@@ -18,25 +17,48 @@ import java.util.zip.*;
  * @author johnny
  */
 public class Searcher {
+    
     public static HashMap<Integer,String> dictionary;
     public static HashMap<String,ArrayList<Posting>> invertedIndex;
-    public static HashMap<String,long[]> metaData;
-    
+    public static HashMap<String,PostingInfo> metaData;
     public static ArrayList<String> queryList;
     
     public static void main(String [] args){
         
-        metaData = deserializeData("./data/metaData");
+        long start = System.currentTimeMillis();
+        metaData = deserializeMetadata("./data/metaData");
+        long end = System.currentTimeMillis();
         
+        dictionary = deserializeDict("./data/dictionary");
+        
+        
+        
+        NumberFormat formatter = new DecimalFormat("#0.00000");
+        System.err.print("index loading time: " + formatter.format((end - start) / 1000d) + " seconds\n");
+        
+        
+        start = System.currentTimeMillis();
         queryList = parseQuery();
+        end = System.currentTimeMillis();
+        
+        
+        System.err.print("query pre-processing time: " + formatter.format((end - start) / 1000d) + " seconds\n");
+        
+        
+        start = System.currentTimeMillis();
         lookUp(queryList,metaData);
-
+        end = System.currentTimeMillis();
+        
+        System.err.print("Search time: " + formatter.format((end - start) / 1000d) + " seconds\n");
+        
+        
+        
         
     }
     
     public static void readRandomAccessFile(String filePath, long pos, long size) throws IOException{
-        int [] docIDs = new int [size];
-        int [] frequencies = new int [size];
+        int [] docIDs = new int [(int)size];
+        int [] frequencies = new int [(int)size];
         
         
         RandomAccessFile file = new RandomAccessFile(filePath, "r");
@@ -48,15 +70,24 @@ public class Searcher {
             frequencies[i] = file.readInt();
         }
         
+        System.out.println("hits: " + size);
+        int totalCount = 0;
+        
+        
         for(int i = 0; i < size;i++){
-            System.out.println("docID: " + docIDs[i] + "Frequencies: " + frequencies[i]);
+            if (i > 0){
+                docIDs[i] = docIDs[i] + docIDs[i-1];
+            }
+            System.out.println("docID: " + docIDs[i] + " Frequencies: " + frequencies[i]);
+            totalCount += frequencies[i];
         }
-       
+        
+        System.out.println("posting list length: " + size);
+        System.out.println("total hits: " + totalCount);
         
     }
     
-    public static void lookUp(ArrayList<String> queries,HashMap<String,long[]> metaData){
-      
+    public static void lookUp(ArrayList<String> queries,HashMap<String,PostingInfo> metaData){
         
         for (String s:queryList){
             System.out.println("You searched for: " + s);
@@ -66,23 +97,53 @@ public class Searcher {
                 return;
             }else{
                 try {
-                    long pos = metaData.get(s)[0];
-                    long size = metaData.get(s)[1];
+                    long pos = metaData.get(s).getPos();
+                    long size = metaData.get(s).getSize();
+                    
                     
                     readRandomAccessFile("./data/index.dat",pos,size);
-                } catch (IOException ex) {
-                    Logger.getLogger(Searcher.class.getName()).log(Level.SEVERE, null, ex);
-                }
+                    
+//                    NumberFormat formatter = new DecimalFormat("#0.00000");
+//                    System.out.print("Execution time is " + formatter.format((end - start) / 1000d) + " seconds\n");
+//
 
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                
+            }
         }
     }
+    
+    public static HashMap<String,PostingInfo> deserializeMetadata(String name){
+        String filename = name + ".dat";
+        HashMap<String,PostingInfo> dict = new HashMap<>();
+        
+        try{
+            FileInputStream fis = new FileInputStream(filename);
+            GZIPInputStream gs = new GZIPInputStream(fis);
+            ObjectInputStream ois = new ObjectInputStream(gs);
+            
+            dict = (HashMap)ois.readObject();
+            
+            ois.close();
+            fis.close();
+        }catch(IOException e){
+            System.out.println("term not in collection");
+        }catch(ClassNotFoundException c){
+            System.out.println("Class not found.");
+            c.printStackTrace();
+        }
+        
+        System.out.println("Deserialized " + filename);
+        return dict;
     }
     
-    public static HashMap<String,long[]> deserializeData(String name){
+     public static HashMap<Integer,String> deserializeDict(String name){
         String filename = name + ".dat";
-        HashMap<String,ArrayList<Posting>> dict = new HashMap<>();
+        HashMap<Integer,String> dict = new HashMap<>();
+        
         try{
-            
             FileInputStream fis = new FileInputStream(filename);
             GZIPInputStream gs = new GZIPInputStream(fis);
             ObjectInputStream ois = new ObjectInputStream(gs);

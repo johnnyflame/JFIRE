@@ -26,8 +26,6 @@ public class Indexer {
     public static HashMap<String,PostingInfo> metaData;
     
     public static void main (String args[]){
-           dictionary = makeDictionary();
-        
       
         invertedIndex = createIndex();
         deltaCompression(invertedIndex);
@@ -40,7 +38,7 @@ public class Indexer {
         }
         
         serialize(metaData, "metaData");
-        serlalize(dictionary,"diconary");
+        serializeDict(dictionary,"dictionary");
         
       //  divideBlocks(invertedIndex);
       //  writeSingleEntry(invertedIndex);
@@ -56,8 +54,7 @@ public class Indexer {
      * @param dict the dictionary mapping between docNo and docID
      * @param index the inverted file index.
      */
-    public static void serialize(Object o,String name){
-        
+    public static void serialize(HashMap<String,PostingInfo> o,String name){
         try{
             String filename = name + ".dat";
             File output =  new File("./data/" + filename);
@@ -75,6 +72,27 @@ public class Indexer {
             e.printStackTrace();
         }  
     }
+    
+    public static void serializeDict(HashMap <Integer,String> h,String name){
+           try{
+            String filename = name + ".dat";
+            File output =  new File("./data/" + filename);
+   
+            FileOutputStream fos = new FileOutputStream(output);
+            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            ObjectOutputStream oos = new ObjectOutputStream(gz);
+            
+            oos.writeObject(h);
+            oos.flush();
+            oos.close();
+            fos.close();
+      //      System.out.println("Serialized dictionary data has been saved in: " + filename);
+        }catch(IOException e){
+            e.printStackTrace();
+        } 
+        
+    }
+    
     
     public static void writeSingleEntry(HashMap<String,ArrayList<Posting>> index1){
         
