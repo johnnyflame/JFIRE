@@ -14,6 +14,7 @@ import java.io.Serializable;
 public class Posting implements Serializable{
     private int docID;
     private int termFrequency;
+    private double rankScore;
     
     
     public Posting(int docID, int termFrequency){
@@ -36,6 +37,10 @@ public class Posting implements Serializable{
     
     public void incrementFrequency(){
         this.termFrequency++;
+    }
+    
+    public void setFrequency(int i){
+        this.termFrequency = i;
     }
     
 //    @Override

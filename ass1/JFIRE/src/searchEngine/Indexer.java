@@ -21,7 +21,7 @@ import java.util.zip.*;
  */
 public class Indexer {
     
-    public static HashMap<Integer,String> dictionary = new HashMap<>();
+    public static HashMap<Integer,DocInfo> dictionary = new HashMap<>();
     public static HashMap<String,ArrayList<Posting>> invertedIndex;
     public static HashMap<String,PostingInfo> metaData;
     
@@ -73,7 +73,7 @@ public class Indexer {
         }  
     }
     
-    public static void serializeDict(HashMap <Integer,String> h,String name){
+    public static void serializeDict(HashMap <Integer,DocInfo> h,String name){
            try{
             String filename = name + ".dat";
             File output =  new File("./data/" + filename);
@@ -92,8 +92,7 @@ public class Indexer {
         } 
         
     }
-    
-    
+
     public static void writeSingleEntry(HashMap<String,ArrayList<Posting>> index1){
         
         TreeMap<String,ArrayList<Posting>> index = new TreeMap<>(index1);  
@@ -186,8 +185,13 @@ public class Indexer {
             
             /* "case 0": If empty line is encountered,increment docID and do nothing. */
             if (word.isEmpty()){
+                DocInfo d = new DocInfo(DocNo,termCounter);
+                dictionary.put(docID, d);
+                
+                
                 docID++;
                 termCounter = 0;
+                DocNo = "";
             }
             
             /* Case 1: word not found in the collection. Do: Create an entry in the index for it */
@@ -198,9 +202,7 @@ public class Indexer {
                 }
                 
                 if (termCounter == 2){
-                    DocNo += "-" + word;
-                    dictionary.put(docID, DocNo);
-                    DocNo = "";
+                    DocNo += "-" + word;    
                 }
                 
                 
@@ -431,12 +433,7 @@ System.out.println("Number of unique entries: " + index.size());
         file.close();
         return metaData;
     }
-    
-        
-            
-            
-            
-            
+     
             
         }
     

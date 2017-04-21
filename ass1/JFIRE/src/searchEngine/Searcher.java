@@ -20,7 +20,7 @@ import java.util.logging.Logger;
  */
 public class Searcher {
     
-    public static HashMap<Integer,String> dictionary;
+    public static HashMap<Integer,DocInfo> dictionary;
     public static HashMap<String,ArrayList<Posting>> invertedIndex;
     public static HashMap<String,PostingInfo> metaData;
     public static ArrayList<String> queryList;
@@ -90,7 +90,7 @@ public class Searcher {
         int count = 0;
         result = merge(results);
         for(Posting p : result){
-            System.out.println("docID: " + p.getDocID() + "\t frequency: " +
+            System.out.println("docID: " + dictionary.get(p.getDocID()).getDocNo() + "\t frequency: " +
                     p.getFrequency());
             count++;
         }
@@ -98,7 +98,13 @@ public class Searcher {
     }
         
         
-        
+    public static ArrayList<Posting> rank(ArrayList<Posting> postingList, ArrayList<String>query){
+        return null;
+    }   
+    
+    public static double tfIDF (Posting p, String term ){
+       return 0;
+    }
     
     
     public static ArrayList<Posting> merge(ArrayList<ArrayList<Posting>> results){
@@ -160,9 +166,9 @@ public class Searcher {
         return dict;
     }
     
-     public static HashMap<Integer,String> deserializeDict(String name){
+     public static HashMap<Integer,DocInfo> deserializeDict(String name){
         String filename = name + ".dat";
-        HashMap<Integer,String> dict = new HashMap<>();
+        HashMap<Integer,DocInfo> dict = new HashMap<>();
         
         try{
             FileInputStream fis = new FileInputStream(filename);
@@ -216,8 +222,7 @@ public class Searcher {
                 queries.add(cleanser.next().toUpperCase());
             }
         }
-        
-        
+
         return queries;
     }
     
