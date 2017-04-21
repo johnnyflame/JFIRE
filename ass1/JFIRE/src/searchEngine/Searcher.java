@@ -9,6 +9,8 @@ import java.io.*;
 import java.util.*;
 import java.util.zip.*;
 import java.text.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class loads the index to memory, then handles queries and returns search results.
@@ -25,69 +27,50 @@ public class Searcher {
     
     public static void main(String [] args){
         
-        long start = System.currentTimeMillis();
-        metaData = deserializeMetadata("./data/metaData");
-        long end = System.currentTimeMillis();
         
-        dictionary = deserializeDict("./data/dictionary");
-        
-        
-        
-        NumberFormat formatter = new DecimalFormat("#0.00000");
-        System.err.print("index loading time: " + formatter.format((end - start) / 1000d) + " seconds\n");
-        
-        
-        start = System.currentTimeMillis();
-        queryList = parseQuery();
-        end = System.currentTimeMillis();
-        
-        
-        System.err.print("query pre-processing time: " + formatter.format((end - start) / 1000d) + " seconds\n");
-        
-        
-        start = System.currentTimeMillis();
-        lookUp(queryList,metaData);
-        end = System.currentTimeMillis();
-        
-        System.err.print("Search time: " + formatter.format((end - start) / 1000d) + " seconds\n");
-        
-        
-        
+        try {
+            metaData = deserializeMetadata("./data/metaData");
+            dictionary = deserializeDict("./data/dictionary");
+            
+            System.out.println("Type in your query: ");
+            queryList = parseQuery();
+          
+            lookUp(queryList,metaData);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
         
     }
     
-    public static void readRandomAccessFile(String filePath, long pos, long size) throws IOException{
-        int [] docIDs = new int [(int)size];
-        int [] frequencies = new int [(int)size];
+    public static ArrayList<Posting> seekPostings(RandomAccessFile file, long pos, long size) throws IOException{
         
-        
-        RandomAccessFile file = new RandomAccessFile(filePath, "r");
-        
+        ArrayList<Posting> postings = new ArrayList<>();
+
         file.seek(pos);
         
         for(int i = 0; i < size;i++){
-            docIDs[i] = file.readInt();
-            frequencies[i] = file.readInt();
+            int id = file.readInt();
+            int freq = file.readInt();
+            
+            Posting p = new Posting(id,freq);
+            postings.add(p);
         }
-        
-        System.out.println("hits: " + size);
-        int totalCount = 0;
         
         
         for(int i = 0; i < size;i++){
             if (i > 0){
-                docIDs[i] = docIDs[i] + docIDs[i-1];
+                int previous = postings.get(i-1).getDocID();
+                postings.get(i).setDocID(previous + postings.get(i).getDocID());
             }
-            System.out.println("docID: " + docIDs[i] + " Frequencies: " + frequencies[i]);
-            totalCount += frequencies[i];
         }
-        
-        System.out.println("posting list length: " + size);
-        System.out.println("total hits: " + totalCount);
-        
+        return postings;
     }
     
-    public static void lookUp(ArrayList<String> queries,HashMap<String,PostingInfo> metaData){
+    public static void lookUp(ArrayList<String> queries,HashMap<String,PostingInfo> metaData) throws IOException{
+        RandomAccessFile file = new RandomAccessFile("./data/index.dat", "r");
+        ArrayList<Posting> result;
+        
+        ArrayList<ArrayList<Posting>> results = new ArrayList();
         
         for (String s:queryList){
             System.out.println("You searched for: " + s);
@@ -96,23 +79,61 @@ public class Searcher {
                 System.out.println("Term not found");
                 return;
             }else{
-                try {
                     long pos = metaData.get(s).getPos();
                     long size = metaData.get(s).getSize();
                     
-                    
-                    readRandomAccessFile("./data/index.dat",pos,size);
-                    
-//                    NumberFormat formatter = new DecimalFormat("#0.00000");
-//                    System.out.print("Execution time is " + formatter.format((end - start) / 1000d) + " seconds\n");
-//
-
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
-                
+                    ArrayList<Posting> termResult = seekPostings(file,pos,size);
+                    results.add(termResult);
             }
         }
+        
+        int count = 0;
+        result = merge(results);
+        for(Posting p : result){
+            System.out.println("docID: " + p.getDocID() + "\t frequency: " +
+                    p.getFrequency());
+            count++;
+        }
+        System.out.println("count: " + count);
+    }
+        
+        
+        
+    
+    
+    public static ArrayList<Posting> merge(ArrayList<ArrayList<Posting>> results){
+        ArrayList<Posting> output = results.get(0);
+        
+        for(int i = 1;i < results.size();i++){
+            output = intersect(output, results.get(i));
+        }
+         return output;
+    }
+    
+    /**
+     * Performs boolean AND merge naively. Can be optimized later if needed.
+     * @param p1
+     * @param p2
+     * @return 
+     */
+    public static ArrayList<Posting> intersect(ArrayList<Posting> p1,ArrayList<Posting> p2){
+        ArrayList<Posting> answer = new ArrayList<>();
+        int i = 0;
+        int j = 0;
+        
+        while (i < p1.size() && j < p2.size()){
+            if (p1.get(i).getDocID() == p2.get(j).getDocID()){
+                answer.add(p1.get(i));
+                i++;
+                j++;
+            }else if (p1.get(i).getDocID() < p2.get(j).getDocID()){
+                i++;
+            }else{
+                j++;
+            }
+                
+        }
+        return answer;    
     }
     
     public static HashMap<String,PostingInfo> deserializeMetadata(String name){
