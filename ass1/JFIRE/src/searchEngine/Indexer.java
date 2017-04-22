@@ -27,6 +27,8 @@ public class Indexer {
     
     public static void main (String args[]){
       
+        
+       
         invertedIndex = createIndex();
         deltaCompression(invertedIndex);
         
@@ -40,12 +42,13 @@ public class Indexer {
         serialize(metaData, "metaData");
         serializeDict(dictionary,"dictionary");
         
-      //  divideBlocks(invertedIndex);
-      //  writeSingleEntry(invertedIndex);
+        TreeMap <Integer,DocInfo> tm = new TreeMap<>(dictionary);
         
+        for (Integer i : tm.keySet()){
+            System.out.println(i + "\t" + tm.get(i).getDocNo());
+        }
         
-        //printIndex(dictionary,invertedIndex);
-         //serialize(dictionary, invertedIndex);
+        System.out.println("Doc collection length: " + tm.size());
         
     }
     
@@ -74,6 +77,8 @@ public class Indexer {
     }
     
     public static void serializeDict(HashMap <Integer,DocInfo> h,String name){
+        
+        System.out.println("doc collection size" + h.size());
            try{
             String filename = name + ".dat";
             File output =  new File("./data/" + filename);
@@ -177,6 +182,7 @@ public class Indexer {
         
         int termCounter = 0;
         String DocNo = "";
+        DocInfo d;
         
         while(sc.hasNext()){
             termCounter++;
@@ -185,7 +191,7 @@ public class Indexer {
             
             /* "case 0": If empty line is encountered,increment docID and do nothing. */
             if (word.isEmpty()){
-                DocInfo d = new DocInfo(DocNo,termCounter);
+                d = new DocInfo(DocNo,termCounter);
                 dictionary.put(docID, d);
                 
                 
@@ -232,6 +238,8 @@ public class Indexer {
                 }
             }
         }
+        d = new DocInfo(DocNo,termCounter);
+        dictionary.put(docID, d);
         return index;
     }
     /**
@@ -281,6 +289,8 @@ public class Indexer {
         for (Integer i : tm.keySet()){
             System.out.println(i + "\t" + tm.get(i));
         }
+        
+        System.out.println("Doc collection length: " + tm.size());
         
         return dict;
     }
@@ -339,11 +349,6 @@ for (String key : index.keySet()){
     for (int i = 0; i < currentPostingList.size();i++){
         currentPostingList.get(i).setDocID(diffArray[i]);
     }
-    
-    
-//              for (int i = 0; i < currentPostingList.size();i++){
-//              System.out.println("docID: " + actualDocID[i] + "\tdiffs: " + currentPostingList.get(i).getDocID());
-//            }
 }
 
 System.out.println();

@@ -6,6 +6,9 @@
 package searchEngine;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 
 /**
  *
@@ -15,11 +18,42 @@ public class Posting implements Serializable{
     private int docID;
     private int termFrequency;
     private double rankScore;
+    private HashMap<String,Integer> resultTermFrequency;
+    private HashMap<String,Double> tfIDf;
+    
+    public void put(String key, Integer value){
+        this.resultTermFrequency.put(key, value);
+    }
+    
+    public double getRankScore(){
+        return this.rankScore;
+    }
+    
+    public void updateTFIDF(String s, Double value){
+        tfIDf.put(s, value);
+    }
+    
+    public HashMap<String,Double> getTFIDF(){
+        return this.tfIDf;
+    }
+    
+    public void setRankScore(double rank){
+        this.rankScore = rank;
+    }
+    
+   
+    
+    public HashMap<String,Integer> getResultTermFrequency(){
+        return this.resultTermFrequency;
+    }
     
     
     public Posting(int docID, int termFrequency){
         this.docID = docID;
         this.termFrequency = termFrequency;
+        this.rankScore = 0;
+        this.resultTermFrequency = new HashMap<>();
+        this.tfIDf = new HashMap<>();
     }
     
     public int getDocID(){

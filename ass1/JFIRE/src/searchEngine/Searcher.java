@@ -23,14 +23,22 @@ public class Searcher {
     public static HashMap<Integer,DocInfo> dictionary;
     public static HashMap<String,ArrayList<Posting>> invertedIndex;
     public static HashMap<String,PostingInfo> metaData;
-    public static ArrayList<String> queryList;
+   
+    public static int docCollectionLength;
     
     public static void main(String [] args){
-        
+         ArrayList<String> queryList;
         
         try {
             metaData = deserializeMetadata("./data/metaData");
             dictionary = deserializeDict("./data/dictionary");
+            docCollectionLength = dictionary.size();
+            
+            
+            System.out.println("number of docs: " + docCollectionLength);
+            
+            
+            
             
             System.out.println("Type in your query: ");
             queryList = parseQuery();
@@ -69,10 +77,13 @@ public class Searcher {
     public static void lookUp(ArrayList<String> queries,HashMap<String,PostingInfo> metaData) throws IOException{
         RandomAccessFile file = new RandomAccessFile("./data/index.dat", "r");
         ArrayList<Posting> result;
+        HashMap<String,ArrayList<Posting>> results = new HashMap<>();
         
-        ArrayList<ArrayList<Posting>> results = new ArrayList();
         
-        for (String s:queryList){
+        HashMap<String,Double> invertedDocFreq = new HashMap<>();
+        HashMap<String,Double> normalizedTF = new HashMap<>();
+        
+        for (String s:queries){
             System.out.println("You searched for: " + s);
             
             if (!metaData.containsKey(s)){
@@ -83,45 +94,89 @@ public class Searcher {
                     long size = metaData.get(s).getSize();
                     
                     ArrayList<Posting> termResult = seekPostings(file,pos,size);
-                    results.add(termResult);
+                    results.put(s,termResult);
+                    
+                    
+                    
+                    double idf = Math.log(docCollectionLength/size);
+                    invertedDocFreq.put(s, idf);
             }
         }
         
+        
+
         int count = 0;
-        result = merge(results);
+        result = merge(queries,results);
+        
+        for(int i = 0;i < result.size();i++){
+            for(String s:results.keySet()){
+                for(Posting p: results.get(s)){
+                    if (p.getDocID() == result.get(i).getDocID()){
+                        result.get(i).put(s, p.getFrequency());
+                    }
+                }
+            }
+        }
+        
+        
+        
         for(Posting p : result){
-            System.out.println("docID: " + dictionary.get(p.getDocID()).getDocNo() + "\t frequency: " +
-                    p.getFrequency());
+          
+            for (String s : p.getResultTermFrequency().keySet()){ 
+                int tf = p.getResultTermFrequency().get(s);
+                int docLength = dictionary.get(p.getDocID()).getDocLength();
+                
+                double tfNormalized = (double)tf/docLength;
+                double tfidf = tfNormalized * invertedDocFreq.get(s);
+                
+                
+                p.updateTFIDF(s, tfidf); 
+            }
+        }
+        
+        for (Posting p: result){
+            double accumulator = 0;
+            for(String s: p.getTFIDF().keySet()){
+                accumulator += p.getTFIDF().get(s);
+            }
+            p.setRankScore(accumulator);
+     //       System.out.println("Rankscore after set : " + accumulator);
+        }
+        
+        //TODO:  SORT posting objects by rank score.
+        
+        Comparator<Posting> comparator = new Comparator<Posting>() {
+            @Override
+            public int compare(Posting p1, Posting p2) {
+                if(p1.getRankScore() < p2.getRankScore()) return 1;
+                if(p1.getRankScore() == p2.getRankScore())return 0;
+                return -1;
+}//To change body of generated methods, choose Tools | Templates.
+        };
+    
+      
+        Collections.sort(result, comparator);
+        
+        for(Posting p : result){
+            System.out.println(dictionary.get(p.getDocID()).getDocNo() + "\t" + p.getRankScore());
             count++;
         }
         System.out.println("count: " + count);
     }
         
+//NOTE: Ranking has to be done before the merge happens. Because we'll need the IDF    
+    
+    
+    
+    public static ArrayList<Posting> merge(ArrayList<String> querieTerms,HashMap<String,ArrayList<Posting>> results){
+        ArrayList<Posting> output = results.get(querieTerms.get(0));
         
-    public static ArrayList<Posting> rank(ArrayList<Posting> postingList, ArrayList<String>query){
-        return null;
-    }   
-    
-    public static double tfIDF (Posting p, String term ){
-       return 0;
-    }
-    
-    
-    public static ArrayList<Posting> merge(ArrayList<ArrayList<Posting>> results){
-        ArrayList<Posting> output = results.get(0);
-        
-        for(int i = 1;i < results.size();i++){
-            output = intersect(output, results.get(i));
+        for(int i = 1;i < querieTerms.size();i++){
+            output = intersect(output, results.get(querieTerms.get(i)));
         }
          return output;
     }
     
-    /**
-     * Performs boolean AND merge naively. Can be optimized later if needed.
-     * @param p1
-     * @param p2
-     * @return 
-     */
     public static ArrayList<Posting> intersect(ArrayList<Posting> p1,ArrayList<Posting> p2){
         ArrayList<Posting> answer = new ArrayList<>();
         int i = 0;
@@ -129,7 +184,7 @@ public class Searcher {
         
         while (i < p1.size() && j < p2.size()){
             if (p1.get(i).getDocID() == p2.get(j).getDocID()){
-                answer.add(p1.get(i));
+                answer.add(p1.get(i));              
                 i++;
                 j++;
             }else if (p1.get(i).getDocID() < p2.get(j).getDocID()){
