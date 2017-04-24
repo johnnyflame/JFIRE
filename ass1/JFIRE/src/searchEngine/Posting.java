@@ -76,6 +76,10 @@ public class Posting implements Serializable{
         this.termFrequency = i;
     }
     
+    public Integer getID(){
+        return Integer.valueOf(docID);
+    }
+    
 //    @Override
 //    public String toString(){
 //        return docID.toString() + " " + termFrequency.toString();

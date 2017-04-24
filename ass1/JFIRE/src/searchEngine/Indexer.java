@@ -6,11 +6,12 @@
 package searchEngine;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Scanner;
-import java.util.TreeMap;
+import java.util.*;
+
 import java.util.zip.*;
+
+import static java.lang.Math.log;
+import java.nio.*;
 
 //import gnu.trove.*;
 
@@ -415,13 +416,15 @@ System.out.println("Number of unique entries: " + index.size());
         
         for (String s: index.keySet()){
             
-            
             ArrayList<Posting> currentPosting = index.get(s);
         
             long startingPos = file.getFilePointer();
             int size = currentPosting.size();
             
             PostingInfo p = new PostingInfo(startingPos, size);
+            
+//            ArrayList<Integer> currentPostingDocIDs = new ArrayList<>();
+//            ArrayList<Integer> currentPostingFrequencies = new ArrayList<>();
           
             for(int i = 0;i < currentPosting.size();i++){
                 file.writeInt(currentPosting.get(i).getDocID());
@@ -429,14 +432,52 @@ System.out.println("Number of unique entries: " + index.size());
             }
             
           
-            
-         //   System.out.println("Term: " + s + " hits: " + pos[1]);
-         
             metaData.put(s, p);
            
         }
         file.close();
         return metaData;
+    }
+    
+        private static byte[] encodeNumber(int n) {
+        if (n == 0) {
+            return new byte[]{0};
+        }
+        int i = (int) (log(n) / log(128)) + 1;
+        byte[] rv = new byte[i];
+        int j = i - 1;
+        do {
+            rv[j--] = (byte) (n % 128);
+            n /= 128;
+        } while (j >= 0);
+        rv[i - 1] += 128;
+        return rv;
+    }
+
+    public static byte[] encode(List<Integer> numbers) {
+        ByteBuffer buf = ByteBuffer.allocate(numbers.size() * (Integer.SIZE / Byte.SIZE));
+        for (Integer number : numbers) {
+            buf.put(encodeNumber(number));
+        }
+        buf.flip();
+        byte[] rv = new byte[buf.limit()];
+        buf.get(rv);
+        return rv;
+    }
+
+    public static List<Integer> decode(byte[] byteStream) {
+        List<Integer> numbers = new ArrayList<Integer>();
+        int n = 0;
+        for (byte b : byteStream) {
+            if ((b & 0xff) < 128) {
+                n = 128 * n + b;
+            } else {
+                int num = (128 * n + ((b - 128) & 0xff));
+                numbers.add(num);
+                n = 0;
+            }
+        }
+        return numbers;
     }
      
             

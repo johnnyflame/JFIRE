@@ -7,10 +7,10 @@ package searchEngine;
 
 import java.io.*;
 import java.util.*;
-import java.util.zip.*;
-import java.text.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.*;
+
 
 /**
  * This class loads the index to memory, then handles queries and returns search results.
@@ -29,24 +29,21 @@ public class Searcher {
     public static void main(String [] args){
          ArrayList<String> queryList;
         
-        try {
-            metaData = deserializeMetadata("./data/metaData");
-            dictionary = deserializeDict("./data/dictionary");
-            docCollectionLength = dictionary.size();
-            
-            
-            System.out.println("number of docs: " + docCollectionLength);
-            
-            
-            
-            
+         metaData = deserializeMetadata("./data/metaData");
+         dictionary = deserializeDict("./data/dictionary");
+         docCollectionLength = dictionary.size();
+        
+        
+      //  while (true){
             System.out.println("Type in your query: ");
             queryList = parseQuery();
-          
-            lookUp(queryList,metaData);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
+            
+            try {
+                lookUp(queryList,metaData);
+            } catch (IOException ex) {
+                Logger.getLogger(Searcher.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        
         
     }
     
@@ -81,7 +78,7 @@ public class Searcher {
         
         
         HashMap<String,Double> invertedDocFreq = new HashMap<>();
-        HashMap<String,Double> normalizedTF = new HashMap<>();
+     
         
         for (String s:queries){
             System.out.println("You searched for: " + s);
@@ -98,7 +95,7 @@ public class Searcher {
                     
                     
                     
-                    double idf = Math.log(docCollectionLength/size);
+                    double idf = Math.log((double)docCollectionLength/size);
                     invertedDocFreq.put(s, idf);
             }
         }
@@ -106,22 +103,33 @@ public class Searcher {
         
 
         int count = 0;
+        
+        
         result = merge(queries,results);
+       
+        
+        Comparator<Posting> c = new Comparator<Posting>() {
+            @Override
+            public int compare(Posting p1, Posting p2) {
+               return p1.getID().compareTo(p2.getDocID());
+            }
+        };
+        //Do binary search here. 
         
         for(int i = 0;i < result.size();i++){
             for(String s:results.keySet()){
-                for(Posting p: results.get(s)){
-                    if (p.getDocID() == result.get(i).getDocID()){
-                        result.get(i).put(s, p.getFrequency());
-                    }
-                }
+                ArrayList<Posting> rawResultListPerTerm = results.get(s);
+                int index = Collections.binarySearch(rawResultListPerTerm, result.get(i), c);
+               // System.out.println("found in: "+ index);
+                result.get(i).put(s, rawResultListPerTerm.get(index).getFrequency());
             }
         }
         
         
         
-        for(Posting p : result){
-          
+        
+        
+        for(Posting p : result){          
             for (String s : p.getResultTermFrequency().keySet()){ 
                 int tf = p.getResultTermFrequency().get(s);
                 int docLength = dictionary.get(p.getDocID()).getDocLength();
@@ -151,9 +159,9 @@ public class Searcher {
                 if(p1.getRankScore() < p2.getRankScore()) return 1;
                 if(p1.getRankScore() == p2.getRankScore())return 0;
                 return -1;
-}//To change body of generated methods, choose Tools | Templates.
+            }//To change body of generated methods, choose Tools | Templates.
         };
-    
+        
       
         Collections.sort(result, comparator);
         
