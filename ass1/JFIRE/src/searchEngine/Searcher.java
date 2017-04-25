@@ -47,22 +47,44 @@ public class Searcher {
         
     }
     
-    public static ArrayList<Posting> seekPostings(RandomAccessFile file, long pos, long size) throws IOException{
+    public static ArrayList<ResultPosting> seekPostings(RandomAccessFile file,PostingInfo pi) throws IOException{
+        long pos = pi.getPos();
+        int docIDSize = pi.getIDSize();
+        int freqSize = pi.getfrequencySize();
         
-        ArrayList<Posting> postings = new ArrayList<>();
+        
+        ArrayList<ResultPosting> postings = new ArrayList<>();
 
+        //now we're in the correct position for retrieval
         file.seek(pos);
         
-        for(int i = 0; i < size;i++){
-            int id = file.readInt();
-            int freq = file.readInt();
-            
-            Posting p = new Posting(id,freq);
+        byte[] IDTmp = new byte[docIDSize]; 
+
+        file.readFully(IDTmp);
+        
+ 
+        
+        byte[] freqTmp = new byte[freqSize];
+        file.readFully(freqTmp);
+        
+        
+        
+        ArrayList<Integer> docIDs = new ArrayList<>(decode(IDTmp));
+  
+        ArrayList<Integer> freqencies = new ArrayList<>(decode(freqTmp));
+        
+
+        
+        for(int i = 0; i < docIDs.size();i++){
+            int id = docIDs.get(i);
+            int freq = freqencies.get(i);
+            ResultPosting p = new ResultPosting(id,freq);
             postings.add(p);
         }
         
-        
-        for(int i = 0; i < size;i++){
+
+        //undiff
+        for(int i = 0; i < docIDs.size();i++){
             if (i > 0){
                 int previous = postings.get(i-1).getDocID();
                 postings.get(i).setDocID(previous + postings.get(i).getDocID());
@@ -73,8 +95,8 @@ public class Searcher {
     
     public static void lookUp(ArrayList<String> queries,HashMap<String,PostingInfo> metaData) throws IOException{
         RandomAccessFile file = new RandomAccessFile("./data/index.dat", "r");
-        ArrayList<Posting> result;
-        HashMap<String,ArrayList<Posting>> results = new HashMap<>();
+        ArrayList<ResultPosting> result;
+        HashMap<String,ArrayList<ResultPosting>> results = new HashMap<>();
         
         
         HashMap<String,Double> invertedDocFreq = new HashMap<>();
@@ -87,16 +109,14 @@ public class Searcher {
                 System.out.println("Term not found");
                 return;
             }else{
-                    long pos = metaData.get(s).getPos();
-                    long size = metaData.get(s).getSize();
-                    
-                    ArrayList<Posting> termResult = seekPostings(file,pos,size);
-                    results.put(s,termResult);
-                    
-                    
-                    
-                    double idf = Math.log((double)docCollectionLength/size);
-                    invertedDocFreq.put(s, idf);
+                   
+                ArrayList<ResultPosting> termResult = seekPostings(file,metaData.get(s));
+                results.put(s,termResult);
+                
+                
+                
+                double idf = Math.log((double)docCollectionLength/termResult.size());
+                invertedDocFreq.put(s, idf);
             }
         }
         
@@ -108,9 +128,9 @@ public class Searcher {
         result = merge(queries,results);
        
         
-        Comparator<Posting> c = new Comparator<Posting>() {
+        Comparator<ResultPosting> c = new Comparator<ResultPosting>() {
             @Override
-            public int compare(Posting p1, Posting p2) {
+            public int compare(ResultPosting p1, ResultPosting p2) {
                return p1.getID().compareTo(p2.getDocID());
             }
         };
@@ -118,7 +138,7 @@ public class Searcher {
         
         for(int i = 0;i < result.size();i++){
             for(String s:results.keySet()){
-                ArrayList<Posting> rawResultListPerTerm = results.get(s);
+                ArrayList<ResultPosting> rawResultListPerTerm = results.get(s);
                 int index = Collections.binarySearch(rawResultListPerTerm, result.get(i), c);
                // System.out.println("found in: "+ index);
                 result.get(i).put(s, rawResultListPerTerm.get(index).getFrequency());
@@ -129,7 +149,7 @@ public class Searcher {
         
         
         
-        for(Posting p : result){          
+        for(ResultPosting p : result){          
             for (String s : p.getResultTermFrequency().keySet()){ 
                 int tf = p.getResultTermFrequency().get(s);
                 int docLength = dictionary.get(p.getDocID()).getDocLength();
@@ -142,7 +162,7 @@ public class Searcher {
             }
         }
         
-        for (Posting p: result){
+        for (ResultPosting p: result){
             double accumulator = 0;
             for(String s: p.getTFIDF().keySet()){
                 accumulator += p.getTFIDF().get(s);
@@ -153,9 +173,9 @@ public class Searcher {
         
         //TODO:  SORT posting objects by rank score.
         
-        Comparator<Posting> comparator = new Comparator<Posting>() {
+        Comparator<ResultPosting> comparator = new Comparator<ResultPosting>() {
             @Override
-            public int compare(Posting p1, Posting p2) {
+            public int compare(ResultPosting p1, ResultPosting p2) {
                 if(p1.getRankScore() < p2.getRankScore()) return 1;
                 if(p1.getRankScore() == p2.getRankScore())return 0;
                 return -1;
@@ -165,7 +185,7 @@ public class Searcher {
       
         Collections.sort(result, comparator);
         
-        for(Posting p : result){
+        for(ResultPosting p : result){
             System.out.println(dictionary.get(p.getDocID()).getDocNo() + "\t" + p.getRankScore());
             count++;
         }
@@ -176,8 +196,8 @@ public class Searcher {
     
     
     
-    public static ArrayList<Posting> merge(ArrayList<String> querieTerms,HashMap<String,ArrayList<Posting>> results){
-        ArrayList<Posting> output = results.get(querieTerms.get(0));
+    public static ArrayList<ResultPosting> merge(ArrayList<String> querieTerms,HashMap<String,ArrayList<ResultPosting>> results){
+        ArrayList<ResultPosting> output = results.get(querieTerms.get(0));
         
         for(int i = 1;i < querieTerms.size();i++){
             output = intersect(output, results.get(querieTerms.get(i)));
@@ -185,8 +205,8 @@ public class Searcher {
          return output;
     }
     
-    public static ArrayList<Posting> intersect(ArrayList<Posting> p1,ArrayList<Posting> p2){
-        ArrayList<Posting> answer = new ArrayList<>();
+    public static ArrayList<ResultPosting> intersect(ArrayList<ResultPosting> p1,ArrayList<ResultPosting> p2){
+        ArrayList<ResultPosting> answer = new ArrayList<>();
         int i = 0;
         int j = 0;
         
@@ -287,6 +307,21 @@ public class Searcher {
         }
 
         return queries;
+    }
+    
+       public static List<Integer> decode(byte[] byteStream) {
+        List<Integer> numbers = new ArrayList<Integer>();
+        int n = 0;
+        for (byte b : byteStream) {
+            if ((b & 0xff) < 128) {
+                n = 128 * n + b;
+            } else {
+                int num = (128 * n + ((b - 128) & 0xff));
+                numbers.add(num);
+                n = 0;
+            }
+        }
+        return numbers;
     }
     
 }

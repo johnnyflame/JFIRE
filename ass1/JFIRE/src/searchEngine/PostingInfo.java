@@ -13,19 +13,25 @@ import java.io.Serializable;
  */
 public class PostingInfo implements Serializable {
     private final long pos;
-    private final int size;
+    private final int docIDsize;
+    private final int frequencySize;
     
-    public PostingInfo(long pos, int size){
+    public PostingInfo(long pos, int docIDSize,int freqSize){
         this.pos = pos;
-        this.size = size;
+        this.docIDsize = docIDSize;
+        this.frequencySize = freqSize;
     }
     
     public long getPos(){
         return this.pos;
     }
     
-    public int getSize(){
-        return this.size;
+    public int getIDSize(){
+        return this.docIDsize;
+    }
+    
+    public int getfrequencySize(){
+        return this.frequencySize;
     }
     
     

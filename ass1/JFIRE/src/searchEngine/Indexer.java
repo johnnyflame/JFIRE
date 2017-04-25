@@ -6,12 +6,18 @@
 package searchEngine;
 
 import java.io.*;
-import java.util.*;
+
 
 import java.util.zip.*;
 
 import static java.lang.Math.log;
-import java.nio.*;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
+import java.util.TreeMap;
+
 
 //import gnu.trove.*;
 
@@ -43,13 +49,13 @@ public class Indexer {
         serialize(metaData, "metaData");
         serializeDict(dictionary,"dictionary");
         
-        TreeMap <Integer,DocInfo> tm = new TreeMap<>(dictionary);
-        
-        for (Integer i : tm.keySet()){
-            System.out.println(i + "\t" + tm.get(i).getDocNo());
-        }
-        
-        System.out.println("Doc collection length: " + tm.size());
+//        TreeMap <Integer,DocInfo> tm = new TreeMap<>(dictionary);
+//        
+//        for (Integer i : tm.keySet()){
+//            System.out.println(i + "\t" + tm.get(i).getDocNo());
+//        }
+//        
+//        System.out.println("Doc collection length: " + tm.size());
         
     }
     
@@ -421,16 +427,27 @@ System.out.println("Number of unique entries: " + index.size());
             long startingPos = file.getFilePointer();
             int size = currentPosting.size();
             
-            PostingInfo p = new PostingInfo(startingPos, size);
+      //      PostingInfo p = new PostingInfo(startingPos, size);
             
-//            ArrayList<Integer> currentPostingDocIDs = new ArrayList<>();
-//            ArrayList<Integer> currentPostingFrequencies = new ArrayList<>();
+            ArrayList<Integer> currentPostingDocIDs = new ArrayList<>();
+            ArrayList<Integer> currentPostingFrequencies = new ArrayList<>();
           
             for(int i = 0;i < currentPosting.size();i++){
-                file.writeInt(currentPosting.get(i).getDocID());
-                file.writeInt(currentPosting.get(i).getFrequency());
+                currentPostingDocIDs.add(currentPosting.get(i).getDocID());
+                currentPostingFrequencies.add(currentPosting.get(i).getFrequency());
             }
             
+            byte[] docIDByteArray = encode(currentPostingDocIDs);
+            byte[] frequencyByteArray = encode(currentPostingFrequencies);
+            
+            int docIDSize = docIDByteArray.length;
+            System.out.println("docID byte array size before writing to disk: " + docIDSize);
+            int frequencySize = frequencyByteArray.length;
+            
+            PostingInfo p = new PostingInfo(startingPos, docIDSize, frequencySize);
+            
+            file.write(docIDByteArray);
+            file.write(frequencyByteArray);
           
             metaData.put(s, p);
            
@@ -465,20 +482,7 @@ System.out.println("Number of unique entries: " + index.size());
         return rv;
     }
 
-    public static List<Integer> decode(byte[] byteStream) {
-        List<Integer> numbers = new ArrayList<Integer>();
-        int n = 0;
-        for (byte b : byteStream) {
-            if ((b & 0xff) < 128) {
-                n = 128 * n + b;
-            } else {
-                int num = (128 * n + ((b - 128) & 0xff));
-                numbers.add(num);
-                n = 0;
-            }
-        }
-        return numbers;
-    }
+ 
      
             
         }
