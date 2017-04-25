@@ -9,7 +9,7 @@ import java.io.Serializable;
 
 /**
  *
- * @author theFlame
+ * @author Johnny Flame Lee 2017
  */
 public class DocInfo implements Serializable{
     private int length;
