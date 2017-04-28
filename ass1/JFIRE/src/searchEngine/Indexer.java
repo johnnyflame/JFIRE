@@ -9,6 +9,7 @@ import java.io.*;
 
 
 import java.util.zip.*;
+import java.util.zip.Deflater;
 
 import static java.lang.Math.log;
 import java.nio.ByteBuffer;
@@ -53,13 +54,21 @@ public class Indexer {
     }
     
  
+    
+    
     public static void serialize(HashMap<String,PostingInfo> o,String name){
         try{
             String filename = name + ".dat";
             File output =  new File("./data/" + filename);
    
             FileOutputStream fos = new FileOutputStream(output);
+            
             GZIPOutputStream gz = new GZIPOutputStream(fos);
+            
+            
+            
+//            Deflater def = new Deflater(Deflater.BEST_COMPRESSION);
+//            DeflaterOutputStream dos = new DeflaterOutputStream(fos, def, 4 * 1024);   
             ObjectOutputStream oos = new ObjectOutputStream(gz);
             
             oos.writeObject(o);
@@ -168,90 +177,12 @@ public class Indexer {
         dictionary.put(docID, d);
         return index;
     }
-    /**
-     * Extract the DocNo from the collection to use as primary key,put it in
-     * a hashMap with the key-value pair as "docID(Integer): DocNo(String)"
-     *
-     * NOTE: dictionary is zero-indexed. ie the docID start at 0
-     * @return a dictionary for lookup between docID and DocNo
-     */
-    public static HashMap<Integer,String> makeDictionary(){
-        
-        HashMap<Integer,String> dict = new HashMap<>();
-        
-        
-        
-        int termCounter = 0, docID = 0;
-        String DocNo = "";
-        
-        
-        Scanner sc = new Scanner(System.in);
-        
-        while (sc.hasNext()){
-            termCounter++;
-            String token = sc.nextLine();
-            // System.out.println(termCounter);
-            
-            // Reset the counter if an empty line is reached.
-            if (token.isEmpty()){
-                termCounter = 0;
-            }
-            
-            if (termCounter == 1){
-                DocNo += token;
-            }
-            if (termCounter == 2){
-                DocNo += "-" + token;
-                
-                dict.put(docID, DocNo);
-                docID++;
-                DocNo = "";
-            }
-        }
-        
-        
-        TreeMap <Integer,String> tm = new TreeMap<>(dict);
-        
-        for (Integer i : tm.keySet()){
-            System.out.println(i + "\t" + tm.get(i));
-        }
-        
-        System.out.println("Doc collection length: " + tm.size());
-        
-        return dict;
-    }
+
     
     /**
-     * Count the number of dictionary(unique) terms and their frequency in the document.
+     * Calculate the diff value between two numbers.
+     * @param index 
      */
-    public static void countUniqueTerms(){
-        HashMap<String,Integer> termsTable = new HashMap<>();
-        Scanner sc = new Scanner(System.in);
-        
-        while (sc.hasNext()){
-            String token = sc.next();
-            
-            if(termsTable.containsKey(token)){
-                int frequency = termsTable.get(token);
-                termsTable.put(token, frequency + 1);
-            }else{
-                termsTable.put(token,1);
-            }
-        }
-        
-        for (String term:termsTable.keySet()){
-            int value = termsTable.get(term);
-            System.out.printf("%-25s  %d\n",term,value);
-        }
-        
-        
-        System.out.println();
-        System.out.println("Dictionary Size: " + termsTable.size());
-        
-        
-    }
-    
-    
     public static void deltaCompression(HashMap<String,ArrayList<Posting>> index ){
         
 //        TreeMap<String,ArrayList<Posting>> index = new TreeMap<>(index1);
@@ -327,7 +258,7 @@ System.out.println("Number of unique entries: " + index.size());
     
     
     
-    /* Variable byte encoding methods from 3rd party, link on https://gist.github.com/zhaoyao/1239611 */
+    /* Variable byte encoding from https://gist.github.com/zhaoyao/1239611 */
     
     
     
