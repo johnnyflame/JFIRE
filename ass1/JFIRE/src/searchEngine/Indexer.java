@@ -55,12 +55,24 @@ public class Indexer {
         writeSingleEntry(metaData);
         docInfoArray = processDictionary(dictionary);
         serializeDictArray(docInfoArray, "dictionary");
+      
+        printIndexItem(invertedIndex);
+        
         
         
         
         
         
  //       serializeDict(dictionary,"dictionary");
+    }
+    
+    
+    public static void printIndexItem(HashMap<String,ArrayList<Posting>> invertedIndex){
+        TreeMap <String,ArrayList<Posting>> tm = new TreeMap<>(invertedIndex);
+        
+        for(String s: tm.keySet()){
+            System.out.println(s + ": \t" + tm.get(s).size());
+        }
     }
    
     

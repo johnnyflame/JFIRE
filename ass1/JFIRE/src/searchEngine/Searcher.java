@@ -125,6 +125,8 @@ public class Searcher {
         
         ArrayList<Integer> docIDs = new ArrayList<>(decode(IDTmp));
         
+        System.out.println("LOOKHERE--item docIDSIZE: " + docIDs.size());
+        
         ArrayList<Integer> freqencies = new ArrayList<>(decode(freqTmp));
         
         
