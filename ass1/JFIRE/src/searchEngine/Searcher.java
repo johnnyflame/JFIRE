@@ -20,28 +20,37 @@ public class Searcher {
     
     public static HashMap<Integer,DocInfo> dictionary;
     public static HashMap<String,PostingInfo> metaData;
+    public static DocInfoArray docInfo;
     
     public static int docCollectionLength;
     
     public static void main(String [] args){
         ArrayList<String> queryList;
         
-        System.out.println("Initializing..");
-        metaData = deserializeMetadata("./data/metaData");
-        dictionary = deserializeDict("./data/dictionary");
-        docCollectionLength = dictionary.size();
+        System.out.println("Welcome to JFIRE");
         
         
+
+        
+        //      metaData = deserializeMetadata("./data/metaData");
+        //      dictionary = deserializeDict("./data/dictionary");
+       
+        
+        docInfo = deserializeDictArray("./data/dictionary.dat");
+        docCollectionLength = docInfo.size();
+        
+          
         while (true){
             System.out.println("Type in your query: ");
             queryList = parseQuery();
             
             if(queryList.isEmpty()){
-                System.out.println("Quitting now.");
+                System.out.println("Quitting now. JFIRE wish you a nice day.");
                 System.exit(0);
             }
             else{
                 try {
+                    metaData = getMetaData(queryList);
                     lookUp(queryList,metaData);
                 } catch (IOException ex) {
                     ex.printStackTrace();
@@ -52,8 +61,44 @@ public class Searcher {
         }
     }
         
-        
     
+    public static DocInfoArray deserializeDictArray(String filename){
+        DocInfoArray output = null;
+        
+        try{
+            FileInputStream fis = new FileInputStream(filename);
+            GZIPInputStream gs = new GZIPInputStream(fis);
+            ObjectInputStream ois = new ObjectInputStream(gs);
+            
+            output = (DocInfoArray)ois.readObject();
+            
+            ois.close();
+            fis.close();
+        }catch(IOException e){
+            System.out.println("file not found");
+            System.exit(1);
+        }catch(ClassNotFoundException c){
+            System.out.println("Class not found.");
+            c.printStackTrace();
+        }
+        
+        //  System.out.println("Deserialized " + filename);
+        return output;
+    }
+    
+    
+    
+    
+    /* Return a HashMap of terms in this query by repeatedly seeking for the terms on the disk*/
+    public static HashMap<String,PostingInfo> getMetaData(ArrayList<String> queries){
+        HashMap<String,PostingInfo> metadata = new HashMap<>();
+        
+        for(String s : queries){
+            HashMap<String,PostingInfo> tmp = deserializeSingleEntry(s);
+            metadata.put(s,tmp.get(s));
+        }
+        return metadata;
+}
     
     
     public static ArrayList<ResultPosting> seekPostings(RandomAccessFile file,PostingInfo pi) throws IOException{
@@ -116,7 +161,6 @@ public class Searcher {
                 System.out.println("Term not found");
                 return;
             }else{
-                
                 ArrayList<ResultPosting> termResult = seekPostings(file,metaData.get(s));
                 results.put(s,termResult);
                 
@@ -158,11 +202,19 @@ public class Searcher {
         for(ResultPosting p : result){
             for (String s : p.getResultTermFrequency().keySet()){
                 int tf = p.getResultTermFrequency().get(s);
-                int docLength = dictionary.get(p.getDocID()).getDocLength();
+                int docLength = docInfo.getLengthItem(p.getDocID());
+          //      System.out.println("new doc Length : "+ docLength);
+                 // old way to get docLength, incase the new one doesnt work.
+                // docLength = dictionary.get(p.getDocID()).getDocLength();
+             //   System.out.println("old docLength: " + docLength);
                 
-                double tfNormalized = (double)tf/docLength;
-                double tfidf = tfNormalized * invertedDocFreq.get(s);
-                
+             
+          //   System.out.println("tf : " + tf);
+             double tfNormalized = (double)tf/docLength;
+         //    System.out.println("tfNormalized: " + tfNormalized);
+             double tfidf = tfNormalized * invertedDocFreq.get(s);
+        //     System.out.println("tfidf: " + tfidf);
+             
                 
                 p.updateTFIDF(s, tfidf);
             }
@@ -192,7 +244,8 @@ public class Searcher {
         Collections.sort(result, comparator);
         
         for(ResultPosting p : result){
-            System.out.println(dictionary.get(p.getDocID()).getDocNo() + "\t" + p.getRankScore());
+//            dictionary.get(p.getDocID()).getDocNo()
+            System.out.println(docInfo.getDocNoItem(p.getDocID()) + "\t" + p.getRankScore());
             count++;
         }
         System.out.println("count: " + count);
@@ -231,13 +284,40 @@ public class Searcher {
         return answer;
     }
     
+    
+    public static HashMap<String,PostingInfo> deserializeSingleEntry(String name){
+        String filename = "./data/metadata/"+ name + ".metadat";
+        HashMap<String, PostingInfo> termMetaData = new HashMap<>();
+        
+        try{
+            FileInputStream fis = new FileInputStream(filename);
+            GZIPInputStream gs = new GZIPInputStream(fis);
+            ObjectInputStream ois = new ObjectInputStream(gs);
+            
+            termMetaData = (HashMap)ois.readObject();
+            ois.close();
+            fis.close();
+            
+        }catch(IOException e){
+            System.out.println("The term you searched for is not in the doc collection");
+            System.exit(1);
+        }catch(ClassNotFoundException c){
+            System.out.println("Class not found.");
+            System.exit(1);
+        }
+        return termMetaData;   
+    }
+        
+    
+    
     public static HashMap<String,PostingInfo> deserializeMetadata(String name){
         String filename = name + ".dat";
         HashMap<String,PostingInfo> dict = new HashMap<>();
         
         try{
             FileInputStream fis = new FileInputStream(filename);
-            GZIPInputStream gs = new GZIPInputStream(fis);
+            GZIPInputStream gs = new GZIPInputStream(fis);        
+            //     InflaterInputStream inf = new InflaterInputStream(fis);
             ObjectInputStream ois = new ObjectInputStream(gs);
             
             dict = (HashMap)ois.readObject();

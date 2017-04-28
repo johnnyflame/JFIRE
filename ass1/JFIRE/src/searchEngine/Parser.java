@@ -23,9 +23,48 @@ public class Parser{
       // dataTester();
     }
     
-
+    
     /**
-     *Tokenize the document received form stdin.
+     * This is a testing method checks assumptions about the dataset
+     * made in the parsing process. Should not print anything when called if the
+     * assumptions made were correct.
+     */
+    public static void dataTester(){
+        Scanner sc = new Scanner(System.in);
+        
+        while (sc.hasNext()){
+            String token =  sc.next();
+            
+            /* assumption 1: No token in the datset continues after a '>' when
+            there is a '<' which preceeds it, which means we
+            can safely discard anything that follows a '<*/
+            
+            
+            if (token.indexOf('<') != -1){
+                if (token.indexOf('>') != token.length()){
+                    System.out.println(token);
+                }
+            }
+            
+            
+            
+            
+            //print all tokens which contain left open pointy bracket.
+            if (token.indexOf('&') != -1){
+                if(token.contains("&amp;")){
+                    token = token.replace("&amp;"," ");
+                    
+                    Scanner cleanToken = new Scanner(token);
+                    
+                    while (cleanToken.hasNext()){
+                        System.out.println(cleanToken.next());
+                    }
+                }
+            }   
+        }
+    }
+    /**
+     *
      */
     public static void parseTokens(){
         Scanner sc = new Scanner(System.in);
@@ -62,8 +101,11 @@ public class Parser{
                 Scanner cleanToken = new Scanner(strippedToken);
                 while (cleanToken.hasNext()){
                     System.out.println(cleanToken.next().toUpperCase());
+                    // count++;
                 }
             }
+            //  firstDoc = false;
+            
         }
     }
 }

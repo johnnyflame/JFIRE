@@ -5,14 +5,15 @@
  */
 package searchEngine;
 
-
+import java.io.Serializable;
+import java.util.HashMap;
 
 
 /**
  *
- * @author Johnny Flame Lee 2017
+ * @author johnny
  */
-public class Posting{
+public class Posting implements Serializable{
     private int docID;
     private int termFrequency;
 

@@ -20,20 +20,22 @@ import java.util.Scanner;
 import java.util.TreeMap;
 
 
-
+//import gnu.trove.*;
 
 
 /**
- * Indexer.java
- * 
- * A program that creates inverted file index from tokens.
- * @author Johnny Flame Lee 2017
+ *
+ * @author johnny
  */
 public class Indexer {
     
     public static HashMap<Integer,DocInfo> dictionary = new HashMap<>();
     public static HashMap<String,ArrayList<Posting>> invertedIndex;
     public static HashMap<String,PostingInfo> metaData;
+    
+    public static DocInfoArray docInfoArray;
+    
+    public static DocInfo [] dictInfoArray; //An array sorted by docID, entries can be retrieved by binary search.
     
     public static void main (String args[]){
       
@@ -49,13 +51,77 @@ public class Indexer {
             e.printStackTrace();
         }
         
-        serialize(metaData, "metaData");
-        serializeDict(dictionary,"dictionary");
+        //  serialize(metaData, "metaData");
+        writeSingleEntry(metaData);
+        docInfoArray = processDictionary(dictionary);
+        serializeDictArray(docInfoArray, "dictionary");
+        
+        
+        
+        
+        
+ //       serializeDict(dictionary,"dictionary");
+    }
+   
+    
+    /**
+     * Process the HashMap of DocID-DocInfo pairs and turn it into an array for 
+     * faster IO.
+     * 
+     * @param dictionary a HashMap of DocID-DocInfo pairs
+     * @return an array of DocInfo, in sorted order ready to be binary searched.
+     */
+    public static DocInfoArray processDictionary(HashMap<Integer,DocInfo> dictionary){
+        TreeMap <Integer,DocInfo> sortedDict = new TreeMap(dictionary);
+        
+        int [] docIDs = new int[sortedDict.size()];
+        String [] docNos = new String [sortedDict.size()] ;
+        int [] docLength = new int [sortedDict.size()];
+        
+        for (Integer i : sortedDict.keySet()){
+            docIDs[i] = i;
+            docNos[i] = sortedDict.get(i).getDocNo();
+            docLength [i] = sortedDict.get(i).getDocLength();
+        }
+        
+        DocInfoArray dia = new DocInfoArray(docIDs, docNos, docLength);
+        
+        return dia;
     }
     
- 
+        
+    public static void serializeDictArray(DocInfoArray h,String name){
+        
+        System.out.println("doc collection size " + h.size());
+           try{
+            String filename = name + ".dat";
+            File output =  new File("./data/" + filename);
+   
+            FileOutputStream fos = new FileOutputStream(output);
+            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            ObjectOutputStream oos = new ObjectOutputStream(gz);
+            
+            oos.writeObject(h);
+            oos.flush();
+            oos.close();
+            fos.close();
+            
+            System.out.println("Serialized dictionary data has been saved in: " + filename);
+        }catch(IOException e){
+            e.printStackTrace();
+        } 
+        
+    }
     
     
+    
+    
+    
+    /**
+     * Serialize data and write to disk.
+     * @param dict the dictionary mapping between docNo and docID
+     * @param index the inverted file index.
+     */
     public static void serialize(HashMap<String,PostingInfo> o,String name){
         try{
             String filename = name + ".dat";
@@ -103,7 +169,75 @@ public class Indexer {
         
     }
 
-   
+    public static void writeSingleEntry(HashMap<String,PostingInfo> metaData){
+        
+        TreeMap<String,PostingInfo> md = new TreeMap<>(metaData);  
+        HashMap <String,PostingInfo> singleEntry = new HashMap<>();
+        
+        // Take each sorted item 
+        for (String key:md.keySet()){
+            singleEntry.put(key, md.get(key));
+          
+        try{
+            String filename = key + ".metadat";
+            File output =  new File("./data/metadata/" + filename);
+            FileOutputStream fos = new FileOutputStream(output);
+            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            ObjectOutputStream oos = new ObjectOutputStream(gz);
+            
+            oos.writeObject(singleEntry);
+            oos.flush();
+            oos.close();
+            fos.close();
+          //  System.out.println("Serialized dictionary data has been saved in: " + filename);
+            singleEntry.clear();
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        
+        
+        }
+    }
+    public static void writeBlockedIndex(HashMap<String,ArrayList<Posting>> index,char p){
+        
+        
+        try{
+            char prefix = p;
+            String filename = prefix + ".ser";
+            FileOutputStream fos = new FileOutputStream(filename);
+            
+            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            
+            ObjectOutputStream oos = new ObjectOutputStream(gz);
+            
+            oos.writeObject(index);
+            oos.flush();
+            oos.close();
+            fos.close();
+            System.out.println("Serialized index data has been saved in: " + filename);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        
+    }
+    public static void printIndex(HashMap<Integer,String> dict, HashMap<String,
+            ArrayList<Posting>> index){
+        
+        TreeMap<String,ArrayList<Posting>> tm = new TreeMap(index);
+        
+        
+        for (String term:tm.keySet()){
+            System.out.println(term + "\t");
+            
+            for(Posting p : tm.get(term)){
+                System.out.println(dict.get(p.getDocID()) + "\t: " +
+                        p.getFrequency());
+            }
+            System.out.println();
+            
+        }
+    }
+    
     /**
      * Creates an inverted index of the document collection.
      *
@@ -211,7 +345,57 @@ for (String key : index.keySet()){
 System.out.println();
 System.out.println("Number of unique entries: " + index.size());
     }
+//
+    public static void divideBlocks(HashMap<String,ArrayList<Posting>> index1){
+        TreeMap<String,ArrayList<Posting>> index = new TreeMap<>(index1);
+        TreeMap<String,ArrayList<Posting>> indexBuffer = new TreeMap<>();
+        
+        char filename = '0';
+        
+        int totalCount = 0;
+        int currentCount = 0;
+        for(int i = 0;i < index.size();i++){
+            String key = (String) index.keySet().toArray()[i];
+            indexBuffer.put(key, index.get(key));
+            currentCount++;
+            
 
+            if (i < index.size()-1){
+                String nextKey = (String) index.keySet().toArray()[i+1];
+                if (key.charAt(0) != nextKey.charAt(0) && (!Character.isDigit(nextKey.charAt(0)))){
+                    
+                    
+                    if((!Character.isDigit(key.charAt(0)))){
+                        filename = key.charAt(0);
+                    }
+                    
+                    writeBlockedIndex(new HashMap(indexBuffer), filename);
+                    totalCount += currentCount;
+                    System.out.println("Tokens starting with " + filename+ ": " + currentCount);
+                    System.out.println("----------------------------------------------");
+                    
+                    currentCount=0;
+                    indexBuffer.clear();
+                }
+            }
+        }
+        
+        filename = 'Z';
+        
+        writeBlockedIndex(new HashMap(indexBuffer), filename);
+        
+        
+        totalCount += currentCount;
+        System.out.println("Tokens starting with z : " + currentCount);
+        System.out.println("----------------------------------------------");
+        
+        currentCount=0;
+        indexBuffer.clear();
+        
+        System.out.println("total count of new keys: " + totalCount);
+        
+        
+    }
     
     public static HashMap<String,PostingInfo> writeRandomAccessFile(HashMap<String,ArrayList<Posting>> index) 
     throws IOException{
@@ -241,7 +425,7 @@ System.out.println("Number of unique entries: " + index.size());
             byte[] frequencyByteArray = encode(currentPostingFrequencies);
             
             int docIDSize = docIDByteArray.length;
-       //     System.out.println("docID byte array size before writing to disk: " + docIDSize);
+            System.out.println("docID byte array size before writing to disk: " + docIDSize);
             int frequencySize = frequencyByteArray.length;
             
             PostingInfo p = new PostingInfo(startingPos, docIDSize, frequencySize);
@@ -291,7 +475,7 @@ System.out.println("Number of unique entries: " + index.size());
  
      
             
-}
+        }
     
 
 
