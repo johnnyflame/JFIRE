@@ -149,7 +149,7 @@ public class Searcher {
     
     public static void lookUp(ArrayList<String> queries,HashMap<String,PostingInfo> metaData) throws IOException{
         RandomAccessFile file = new RandomAccessFile("./data/index.dat", "r");
-        ArrayList<ResultPosting> result;
+        ArrayList<ResultPosting> result = null;
         HashMap<String,ArrayList<ResultPosting>> results = new HashMap<>();
         
         
@@ -161,9 +161,13 @@ public class Searcher {
                 System.out.println("Term not found");
                 return;
             }else{
+                        
                 ArrayList<ResultPosting> termResult = seekPostings(file,metaData.get(s));
-                results.put(s,termResult);
                 
+               
+                
+                results.put(s,termResult);
+               
               
                 double idf = Math.log((double)docCollectionLength/termResult.size());
                 invertedDocFreq.put(s, idf);
@@ -176,6 +180,7 @@ public class Searcher {
         
         
         result = merge(queries,results);
+        
         
         
         Comparator<ResultPosting> c = new Comparator<ResultPosting>() {
