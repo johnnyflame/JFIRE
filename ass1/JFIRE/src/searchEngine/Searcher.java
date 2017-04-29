@@ -27,36 +27,32 @@ public class Searcher {
     public static void main(String [] args){
         ArrayList<String> queryList;
         
-        System.out.println("Welcome to JFIRE");
-        
-        
-
-        
-        //      metaData = deserializeMetadata("./data/metaData");
-        //      dictionary = deserializeDict("./data/dictionary");
-       
+        System.err.println("Welcome to JFIRE");
         
         docInfo = deserializeDictArray("./data/dictionary.dat");
         docCollectionLength = docInfo.size();
         
           
         while (true){
-            System.out.println("Type in your query: ");
+            System.err.println("Type in your query, followed by ctrl+d to search ");
             queryList = parseQuery();
             
             if(queryList.isEmpty()){
-                System.out.println("Quitting now. JFIRE wish you a nice day.");
+                System.err.println("Quitting now..goodbye.");
                 System.exit(0);
             }
             else{
                 try {
                     metaData = getMetaData(queryList);
-                    lookUp(queryList,metaData);
+                    if(metaData != null){           
+                        lookUp(queryList,metaData);
+                        System.out.println();
+                    }else{
+                        System.out.println();
+                    }
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
-                
-                
             }
         }
     }
@@ -95,7 +91,11 @@ public class Searcher {
         
         for(String s : queries){
             HashMap<String,PostingInfo> tmp = deserializeSingleEntry(s);
+            if(tmp == null){
+                return null;
+            }else{
             metadata.put(s,tmp.get(s));
+            }
         }
         return metadata;
 }
@@ -105,10 +105,6 @@ public class Searcher {
         long pos = pi.getPos();
         int docIDSize = pi.getIDSize();
         int freqSize = pi.getfrequencySize();
-        
-        
-        System.out.println("LOOKHERE--item ID byteSIZE: " + docIDSize);
-        System.out.println("LOOKHERE--item freq byteSIZE: " + freqSize);
         
         ArrayList<ResultPosting> postings = new ArrayList<>();
         
@@ -132,16 +128,6 @@ public class Searcher {
        
         int count = 0;
         
-       
-        
-     
-//        
-    
-//         for(Integer i : freqencies){
-//            count++;
-//            System.out.println(i);
-//            System.out.println("count " + count);
-//        }
     
         for(int i = 0; i < docIDs.size();i++){
             int id = docIDs.get(i) - 1; //NOTE: variable byte encoding swallows up zeros, so the docIDs are padded out.
@@ -267,7 +253,8 @@ public class Searcher {
             System.out.println(docInfo.getDocNoItem(p.getDocID()) + "\t" + p.getRankScore());
             count++;
         }
-        System.out.println("count: " + count);
+        String s = (count > 1) ? "s" : "";
+        System.err.println("Your query returns " + count + " relevant result" +s+"." );
     }
     
 //NOTE: Ranking has to be done before the merge happens. Because we'll need the IDF
@@ -318,8 +305,9 @@ public class Searcher {
             fis.close();
             
         }catch(IOException e){
-            System.out.println("The term you searched for is not in the doc collection");
-            System.exit(1);
+            System.out.println("The term you searched for appears 0 times in the collection.");
+            return null;
+     //       System.exit(1);
         }catch(ClassNotFoundException c){
             System.out.println("Class not found.");
             System.exit(1);
