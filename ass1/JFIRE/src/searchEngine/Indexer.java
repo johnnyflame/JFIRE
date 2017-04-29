@@ -51,28 +51,31 @@ public class Indexer {
             e.printStackTrace();
         }
         
-        //  serialize(metaData, "metaData");
         writeSingleEntry(metaData);
         docInfoArray = processDictionary(dictionary);
         serializeDictArray(docInfoArray, "dictionary");
-      
-        printIndexItem(invertedIndex);
         
+
         
-        
-        
-        
-        
- //       serializeDict(dictionary,"dictionary");
     }
     
     
     public static void printIndexItem(HashMap<String,ArrayList<Posting>> invertedIndex){
         TreeMap <String,ArrayList<Posting>> tm = new TreeMap<>(invertedIndex);
-        
+        int count = 0;
         for(String s: tm.keySet()){
+            count = 0;
+            
             System.out.println(s + ": \t" + tm.get(s).size());
+            for (Posting p: tm.get(s)){
+                count++;
+                System.out.println("docID: " + p.getDocID());
+                System.out.println("freq: " + p.getFrequency());
+                System.out.println("current count " + count);
+            }
+             System.out.println("total count: " + count);
         }
+       
     }
    
     
@@ -421,23 +424,30 @@ System.out.println("Number of unique entries: " + index.size());
             ArrayList<Posting> currentPosting = index.get(s);
         
             long startingPos = file.getFilePointer();
-            int size = currentPosting.size();
-            
+
       //      PostingInfo p = new PostingInfo(startingPos, size);
             
             ArrayList<Integer> currentPostingDocIDs = new ArrayList<>();
             ArrayList<Integer> currentPostingFrequencies = new ArrayList<>();
+            
+          
           
             for(int i = 0;i < currentPosting.size();i++){
-                currentPostingDocIDs.add(currentPosting.get(i).getDocID());
+                currentPostingDocIDs.add((currentPosting.get(i).getDocID() + 1));
                 currentPostingFrequencies.add(currentPosting.get(i).getFrequency());
             }
+            
+            
+
             
             byte[] docIDByteArray = encode(currentPostingDocIDs);
             byte[] frequencyByteArray = encode(currentPostingFrequencies);
             
+            
+            
+            
             int docIDSize = docIDByteArray.length;
-            System.out.println("docID byte array size before writing to disk: " + docIDSize);
+       //     System.out.println("docID byte array size before writing to disk: " + docIDSize);
             int frequencySize = frequencyByteArray.length;
             
             PostingInfo p = new PostingInfo(startingPos, docIDSize, frequencySize);
@@ -446,6 +456,38 @@ System.out.println("Number of unique entries: " + index.size());
             file.write(frequencyByteArray);
           
             metaData.put(s, p);
+            if (s.equals("ROSENFIELD")){
+                System.out.println(s);
+                
+                System.out.println("term: " + s + " docIDlength before writing to disk: " + currentPostingDocIDs.size()
+                        + " freq size before writing to disk: " + currentPostingFrequencies.size());
+                
+                for(Integer i : currentPostingDocIDs){
+                    System.out.println("docID " + i);
+                }
+                
+                
+                
+                System.out.println("recorded ID size: as bytes " + p.getIDSize() + " freq size: as bytes " +  p.getfrequencySize());
+                System.out.println("Actual ID size: as bytes " + docIDByteArray.length + " freq size: as bytes " +  frequencyByteArray.length);
+                
+                ArrayList<Integer> docIDs = new ArrayList<>(decode(docIDByteArray));
+                ArrayList<Integer> freqencies = new ArrayList<>(decode(frequencyByteArray));
+                
+ 
+                System.out.println("docIDs size after decompression: " + docIDs.size());
+                
+                for(Integer i : docIDs){
+                    System.out.println("docID post vb:  " + i);
+                }
+                
+                
+                System.out.println("freq size : " + freqencies.size());
+                
+                
+                        
+                        
+            }
            
         }
         file.close();
@@ -483,11 +525,26 @@ System.out.println("Number of unique entries: " + index.size());
         buf.get(rv);
         return rv;
     }
+    
+        public static List<Integer> decode(byte[] byteStream) {
+        List<Integer> numbers = new ArrayList<Integer>();
+        int n = 0;
+        for (byte b : byteStream) {
+            if ((b & 0xff) < 128) {
+                n = 128 * n + b;
+            } else {
+                int num = (128 * n + ((b - 128) & 0xff));
+                numbers.add(num);
+                n = 0;
+            }
+        }
+        return numbers;
+    }
 
  
      
             
-        }
+}
     
 
 

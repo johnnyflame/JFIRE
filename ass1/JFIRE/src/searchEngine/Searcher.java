@@ -107,32 +107,44 @@ public class Searcher {
         int freqSize = pi.getfrequencySize();
         
         
+        System.out.println("LOOKHERE--item ID byteSIZE: " + docIDSize);
+        System.out.println("LOOKHERE--item freq byteSIZE: " + freqSize);
+        
         ArrayList<ResultPosting> postings = new ArrayList<>();
         
         //now we're in the correct position for retrieval
         file.seek(pos);
         
-        byte[] IDTmp = new byte[docIDSize];
-        
+        byte[] IDTmp = new byte[docIDSize];  
         file.readFully(IDTmp);
         
+         //off by 1 here.
+        ArrayList<Integer> docIDs = new ArrayList<>(decode(IDTmp));
+     
         
+    
         
         byte[] freqTmp = new byte[freqSize];
         file.readFully(freqTmp);
-        
-        
-        
-        ArrayList<Integer> docIDs = new ArrayList<>(decode(IDTmp));
-        
-        System.out.println("LOOKHERE--item docIDSIZE: " + docIDs.size());
-        
         ArrayList<Integer> freqencies = new ArrayList<>(decode(freqTmp));
         
         
+       
+        int count = 0;
         
+       
+        
+     
+//        
+    
+//         for(Integer i : freqencies){
+//            count++;
+//            System.out.println(i);
+//            System.out.println("count " + count);
+//        }
+    
         for(int i = 0; i < docIDs.size();i++){
-            int id = docIDs.get(i);
+            int id = docIDs.get(i) - 1; //NOTE: variable byte encoding swallows up zeros, so the docIDs are padded out.
             int freq = freqencies.get(i);
             ResultPosting p = new ResultPosting(id,freq);
             postings.add(p);
