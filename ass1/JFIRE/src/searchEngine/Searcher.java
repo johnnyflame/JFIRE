@@ -317,31 +317,6 @@ public class Searcher {
         
     
     
-    public static HashMap<String,PostingInfo> deserializeMetadata(String name){
-        String filename = name + ".dat";
-        HashMap<String,PostingInfo> dict = new HashMap<>();
-        
-        try{
-            FileInputStream fis = new FileInputStream(filename);
-            GZIPInputStream gs = new GZIPInputStream(fis);        
-            //     InflaterInputStream inf = new InflaterInputStream(fis);
-            ObjectInputStream ois = new ObjectInputStream(gs);
-            
-            dict = (HashMap)ois.readObject();
-            
-            ois.close();
-            fis.close();
-        }catch(IOException e){
-            System.out.println("term not in collection");
-        }catch(ClassNotFoundException c){
-            System.out.println("Class not found.");
-            c.printStackTrace();
-        }
-        
-        //  System.out.println("Deserialized " + filename);
-        return dict;
-    }
-    
     public static HashMap<Integer,DocInfo> deserializeDict(String name){
         String filename = name + ".dat";
         HashMap<Integer,DocInfo> dict = new HashMap<>();
